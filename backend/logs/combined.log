@@ -1,0 +1,20 @@
+2025-03-27T12:31:57.465Z error: Unable to fetch users due to: 
+Invalid `prisma.user.findMany()` invocation:
+
+
+The column `User.googleId` does not exist in the current database.
+PrismaClientKnownRequestError: 
+Invalid `prisma.user.findMany()` invocation:
+
+
+The column `User.googleId` does not exist in the current database.
+    at Un.handleRequestError (C:\Users\shrmg\OneDrive\Desktop\Projects\ai-study-planner\node_modules\@prisma\client\runtime\library.js:121:7447)
+    at Un.handleAndLogRequestError (C:\Users\shrmg\OneDrive\Desktop\Projects\ai-study-planner\node_modules\@prisma\client\runtime\library.js:121:6771)
+    at Un.request (C:\Users\shrmg\OneDrive\Desktop\Projects\ai-study-planner\node_modules\@prisma\client\runtime\library.js:121:6478)
+    at async l (C:\Users\shrmg\OneDrive\Desktop\Projects\ai-study-planner\node_modules\@prisma\client\runtime\library.js:130:9644)
+    at async file:///C:/Users/shrmg/OneDrive/Desktop/Projects/ai-study-planner/backend/index.js:29:19
+2025-03-27T13:15:07.547Z info: Server is running on http://localhost:3000
+2025-03-27T13:15:10.112Z info: Database connection successful
+2025-03-27T13:18:44.755Z info: Server is running on http://localhost:3000
+2025-03-27T13:18:46.416Z info: Database connection successful
+2025-03-27T13:19:09.788Z info: GET / - Success

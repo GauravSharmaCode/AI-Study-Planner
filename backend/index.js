@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import { PrismaClient } from "@prisma/client";
+import { DBConnect, prisma } from "./config/db.js"; // Import DBConnect and prisma
 import logger from "./utils/logger.js";
 
 // Load environment variables from .env file
@@ -8,19 +8,29 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-const prisma = new PrismaClient();
+
+// Test database connection during startup
+DBConnect();
 
 app.get("/", async (req, res) => {
   try {
     // Example query to test database connection
     const users = await prisma.user.findMany();
-    res.status(200).json("DB Connection Successful");
+
+    // Send the response to the client
+    res.status(200).json(users);
+
+    // Log the response sent to the client
+    logger.info("GET / - Success", {
+      statusCode: 200,
+      response: users, // Log the full response object
+    });
   } catch (error) {
-    logger.error("Database query failed", error);
+    logger.error("Unable to fetch users due to:", error);
     res.status(500).send("Internal Server Error");
   }
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  logger.info(`Server is running on http://localhost:${port}`);
 });
