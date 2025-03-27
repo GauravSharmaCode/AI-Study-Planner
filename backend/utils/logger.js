@@ -33,7 +33,12 @@ const logger = winston.createLogger({
   ],
 });
 
-// Extend logger with helper methods
+/**
+ * Logs a query execution start.
+ * @param {Object} query - The query object
+ * @param {Array} [params=[]] - Query parameters
+ * @returns {undefined}
+ */
 logger.queryStart = (query, params = []) => {
   logger.debug(
     `Executing query: ${query.strings.join(" ")} with params: [${params.join(
@@ -42,23 +47,35 @@ logger.queryStart = (query, params = []) => {
   );
 };
 
+/**
+ * Logs a successful query execution.
+ * @param {String} message - A message describing the query
+ * @returns {undefined}
+ */
 logger.querySuccess = (message) => {
   logger.info(`Query executed successfully: ${message}`);
 };
 
+/**
+ * Logs an error that occurred during query execution.
+ * @param {Error} error - The error object associated with the query failure.
+ * @param {String} context - A description of the context in which the query failed.
+ * @returns {undefined}
+ */
+
 logger.queryError = (error, context) => {
-  logger.error(`Query failed in ${context}: ${error.stack}`);
+  logger.error(`Query failed in ${context}: ${error.stack || error.message}`);
 };
 
+/**
+ * Logs an error that occurred during an API call.
+ * @param {Error} error - The error object associated with the API call failure.
+ * @param {String} context - A description of the context in which the API call failed.
+ * @returns {undefined}
+ */
 logger.apiError = (error, context) => {
-  logger.error(`API Error in ${context}: ${error.stack}`);
+  logger.error(`API Error in ${context}: ${error.stack || error.message}`);
 };
 
-// Keep original helper methods for backward compatibility
-logger.debug = logger.debug.bind(logger);
-logger.info = logger.info.bind(logger);
-logger.error = (error, context) => {
-  logger.error(`Error in ${context}: ${error.stack}`);
-};
-
+// Do not redefine logger.error to avoid recursion
 export default logger;
