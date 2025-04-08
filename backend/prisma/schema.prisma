@@ -13,47 +13,81 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id             String     @id @default(uuid())
-  email          String     @unique
-  name           String?
-  password       String?    // Only if using email/password auth
-  googleId       String?    @unique
-  studyPlans     StudyPlan[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id          String      @id @default(uuid())
+  email       String      @unique
+  name        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  studyPlans  StudyPlan[]
+  schedules   Schedule[]
 }
 
 model StudyPlan {
-  id             String       @id @default(uuid())
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exam           String
-  studyDuration  String
-  dailyHours     Int
-  subjects       String[]     // Array of subjects
-  optionals      String[]     // Optional subjects
-  studyStyle     String[]     // ["Videos", "Books", "Practice Questions"]
-  numberOfAttempts Int
-  studySessions  StudySession[]
-  createdAt      DateTime     @default(now())
+  id               Int       @id @default(autoincrement())
+  userId           String
+  exam             String
+  studyDuration    String
+  dailyHours       Int
+  subjects         String[]
+  optionals        String[]
+  studyStyle       String[]
+  numberOfAttempts Int       @default(1)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  schedules        Schedule[]
+  studySessions    StudySession[]
+  user             User      @relation(fields: [userId], references: [id])
+}
+
+model Schedule {
+  id          Int          @id @default(autoincrement())
+  type        ScheduleType @default(DAILY)
+  studyPlanId Int
+  userId      String
+  dayNumber   Int
+  focus       String
+  sessions    Json
+  breaks      Json
+  dailyTargets Json
+  metadata    Json
+  studyPlan   StudyPlan   @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([studyPlanId])
+  @@index([userId])
 }
 
 model StudySession {
-  id             String      @id @default(uuid())
-  studyPlanId    String
-  studyPlan      StudyPlan   @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
-  day           Int
-  topics        String[]    // List of topics
-  completed     Boolean     @default(false)
-  resources     Resource[]
+  id          Int       @id @default(autoincrement())
+  studyPlanId Int
+  day         String
+  topics      String[]
+  completed   Boolean   @default(false)
+  resources   Resource[] @relation("SessionResources")
+  studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([studyPlanId])
 }
 
 model Resource {
-  id            String      @id @default(uuid())
-  studySessionId String
-  studySession  StudySession @relation(fields: [studySessionId], references: [id], onDelete: Cascade)
-  type          String      // "video", "book", "practice-site"
-  url           String
+  id              Int          @id @default(autoincrement())
+  studySessionId  Int
+  name            String
+  type            String
+  studySession    StudySession @relation("SessionResources", fields: [studySessionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([studySessionId])
+}
+
+enum ScheduleType {
+  DAILY
+  WEEKLY
+  MONTHLY
 }
