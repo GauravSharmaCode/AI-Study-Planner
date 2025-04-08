@@ -1,15 +1,65 @@
 import winston from "winston";
 import path from "path";
 
+// Replace the existing getCallerInfo function
+const getCallerInfo = () => {
+  const stack = new Error().stack.split('\n').slice(1);
+
+  for (const line of stack) {
+    // Skip irrelevant stack frames
+    if (!line || 
+        line.includes('node_modules') || 
+        line.includes('internal/') ||
+        line.includes('logger.js') ||
+        line.includes('at async') ||
+        line.includes('at Module.')) {
+      continue;
+    }
+
+    // Match both ESM and CommonJS stack frames
+    const patterns = [
+      /at\s+([^(]+)\s+\((?:file:\/\/\/)?([^:]+)/,  // Named function in parentheses
+      /at\s+(?:file:\/\/\/)?([^:]+)/,               // File path only
+      /at\s+([^(\s]+)\s*\(?([^)]+)/                 // More general pattern
+    ];
+
+    for (const pattern of patterns) {
+      const match = line.match(pattern);
+      if (match) {
+        let functionName, filePath;
+        
+        if (pattern === patterns[0] || pattern === patterns[2]) {
+          functionName = match[1].trim();
+          filePath = match[2];
+        } else {
+          functionName = 'anonymous';
+          filePath = match[1];
+        }
+
+        // Clean up function name and file path
+        functionName = functionName.split(' ')[0]; // Remove any extra parts
+        const fileName = path.basename(filePath);
+
+        if (!filePath.includes('node_modules')) {
+          return { fileName, functionName };
+        }
+      }
+    }
+  }
+  
+  return { fileName: "unknown", functionName: "unknown" };
+};
+
 // Custom format for logging
 const customFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
   winston.format.printf(({ timestamp, level, message, stack }) => {
+    const { fileName, functionName } = getCallerInfo();
     if (stack) {
-      return `${timestamp} ${level}: ${message}\n${stack}`;
+      return `${timestamp} ${level} [${fileName} -> ${functionName}]: ${message}\n${stack}`;
     }
-    return `${timestamp} ${level}: ${message}`;
+    return `${timestamp} ${level} [${fileName} -> ${functionName}]: ${message}`;
   })
 );
 
@@ -79,3 +129,16 @@ logger.apiError = (error, context) => {
 
 // Do not redefine logger.error to avoid recursion
 export default logger;
+/**
+ * Logs a message with the origin file and function name.
+ * @param {String} message - The message to log.
+ * @param {String} level - The log level (e.g., "info", "warn", "error").
+ * @param {String} origin - The origin of the log (e.g., "index.js", "config/db.js").
+ * @returns {undefined}
+ */
+logger.logWithOrigin = (message, level = "info", origin = "unknown") => {
+  logger.log({
+    level,
+    message: `${message} (Origin: ${origin})`,
+  });
+};

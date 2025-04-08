@@ -1,3 +1,28 @@
-node_modules
-# Keep environment variables out of version control
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
 .env
+.env.test
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -18,3 +18,24 @@ The column `User.googleId` does not exist in the current database.
 2025-03-27T13:18:44.755Z info: Server is running on http://localhost:3000
 2025-03-27T13:18:46.416Z info: Database connection successful
 2025-03-27T13:19:09.788Z info: GET / - Success
+2025-03-27T17:28:11.980Z info: Server is running on http://localhost:3000
+2025-03-27T17:28:14.292Z info: Database connection successful
+2025-03-27T17:30:05.874Z info [printf.js -> Printf.transform]: Server is running on http://localhost:3000
+2025-03-27T17:30:07.750Z info [printf.js -> Printf.transform]: Database connection successful
+2025-03-27T17:31:11.409Z info [..\node_modules\logform\printf.js -> Printf.transform]: Server is running on http://localhost:3000
+2025-03-27T17:31:13.205Z info [..\node_modules\logform\printf.js -> Printf.transform]: Database connection successful
+2025-03-27T17:33:17.364Z info [..\node_modules\logform\printf.js -> Printf.transform]: Server is running on http://localhost:3000
+2025-03-27T17:33:19.149Z info [..\node_modules\logform\printf.js -> Printf.transform]: Database connection successful
+2025-03-27T17:36:06.327Z info [unknown -> unknown]: Server is running on http://localhost:3000
+2025-03-27T17:36:08.758Z info [unknown -> unknown]: Database connection successful
+2025-03-27T17:37:14.998Z info [unknown -> unknown]: Server is running on http://localhost:3000
+2025-03-27T17:37:16.826Z info [unknown -> unknown]: Database connection successful
+2025-03-27T17:38:35.582Z info [unknown -> unknown]: Server is running on http://localhost:3000
+2025-03-27T17:38:37.431Z info [unknown -> unknown]: Database connection successful
+2025-03-27T17:42:19.313Z info [unknown -> unknown]: Server is running on http://localhost:3000
+2025-03-27T17:42:23.866Z info [unknown -> unknown]: Database connection successful
+2025-03-27T17:47:56.009Z info [unknown -> unknown]: Server is running on http://localhost:3000
+2025-03-27T17:47:58.190Z info [unknown -> unknown]: Database connection successful
+2025-03-27T17:51:20.010Z info [unknown -> unknown]: Server is running on http://localhost:3000
+2025-03-27T17:51:21.811Z info [unknown -> unknown]: Database connection successful
+2025-03-27T17:51:21.813Z info [unknown -> unknown]: Database connection successful
