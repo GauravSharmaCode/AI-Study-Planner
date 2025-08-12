@@ -1,0 +1,22 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "setupFilesAfterEnv": ["<rootDir>/tests/setup.ts"],
+  "testMatch": [
+    "<rootDir>/tests/**/*.test.ts",
+    "<rootDir>/tests/**/*.test.js"
+  ],
+  "collectCoverageFrom": [
+    "src/**/*.ts",
+    "src/**/*.js",
+    "!src/index.ts",
+    "!src/index.js",
+    "!**/node_modules/**"
+  ],
+  "coverageDirectory": "coverage",
+  "coverageReporters": ["text", "lcov", "html"],
+  "transform": {
+    "^.+\\.tsx?$": "ts-jest"
+  },
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"]
+}
