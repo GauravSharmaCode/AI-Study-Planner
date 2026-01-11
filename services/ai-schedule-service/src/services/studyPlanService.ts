@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { AIAPIClient } from './ai-api-client';
-import logger from "../utils/logger";
+import { StudyPlan } from '../schemas';
+import { createLogger } from "../utils/logger";
+const logger = createLogger('study-plan-service');
+// ...
 
 interface CreatePlanRequest {
   subjects: string[];
@@ -9,16 +12,9 @@ interface CreatePlanRequest {
   userId: string;
 }
 
-interface StudyPlan {
-  id: string;
-  userId: string;
-  subjects: string[];
-  availableHoursPerDay: number;
-  targetCompletionDate: Date;
-  plan: any;
-  createdAt: Date;
-  updatedAt: Date;
-}
+
+
+// Mapping to usage: getAllPlans returns StudyPlan[].
 
 class StudyPlanService {
   private prisma: PrismaClient;
@@ -238,49 +234,17 @@ class StudyPlanService {
     Each session should have: topic, start_time, end_time, status (default "pending").
     Format: {"2025-08-12": [{"topic": "Algebra", "start_time": "09:00", "end_time": "10:00", "status": "pending"}]}`;
 
-    try {
-      const aiResponse = await this.aiClient.generateContent(prompt);
-      const jsonMatch = aiResponse.match(/\{.*\}/s);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackPlan(data);
-    } catch (aiError) {
-      this.logger.warn('AI generation failed, using fallback plan', { error: (aiError as Error).message });
-      return this.generateFallbackPlan(data);
+    const aiResponse = await this.aiClient.generateContent(prompt);
+    const jsonMatch = aiResponse.match(/\{.*\}/s);
+    
+    if (!jsonMatch) {
+      throw new Error('AI failed to generate valid study plan format');
     }
+    
+    return JSON.parse(jsonMatch[0]);
   }
 
-  /**
-   * Private method to generate fallback plan when AI fails
-   */
-  private generateFallbackPlan(data: CreatePlanRequest): any {
-    const plan: any = {};
-    const startDate = new Date();
-    const endDate = new Date(data.targetCompletionDate);
-    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24));
-    
-    for (let i = 0; i < Math.min(daysDiff, 30); i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      const dateKey = currentDate.toISOString().split('T')[0];
-      
-      const sessionsPerDay = Math.floor(data.availableHoursPerDay / 2);
-      plan[dateKey] = [];
-      
-      for (let j = 0; j < sessionsPerDay; j++) {
-        const subject = data.subjects[j % data.subjects.length];
-        const startHour = 9 + (j * 2);
-        const endHour = startHour + 2;
-        
-        plan[dateKey].push({
-          topic: `${subject} - Session ${j + 1}`,
-          start_time: `${startHour.toString().padStart(2, '0')}:00`,
-          end_time: `${endHour.toString().padStart(2, '0')}:00`,
-          status: 'pending'
-        });
-      }
-    }
-    
-    return plan;
-  }
+
 
   /**
    * Private method to create individual session records from plan JSON

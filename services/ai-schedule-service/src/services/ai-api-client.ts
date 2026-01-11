@@ -1,12 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import logger from '../utils/logger';
+import { createLogger } from '../utils/logger';
 
 /**
  * A client class to encapsulate all interactions with the Google Generative AI API,
  * correctly using response schemas for structured output.
  */
 export class AIAPIClient {
-  private readonly logger = logger;
+  private readonly logger = createLogger('ai-client');
   private readonly ai: GoogleGenAI;
   private readonly modelName: string = 'gemini-1.5-pro';
 

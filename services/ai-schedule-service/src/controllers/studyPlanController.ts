@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import studyPlanService from '../services/studyPlanService';
-import logger from '../utils/logger';
+import { createLogger } from '../utils/logger';
+const logger = createLogger('study-plan-controller');
 
 export class StudyPlanController {
   /**
@@ -23,7 +24,7 @@ export class StudyPlanController {
         subjects,
         availableHoursPerDay,
         targetCompletionDate,
-        userId
+        userId: String(userId)
       });
 
       res.status(201).json(result);

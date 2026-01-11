@@ -35,13 +35,8 @@ COPY --from=builder --chown=scheduleuser:nodejs /app/dist ./dist
 COPY --from=builder --chown=scheduleuser:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=scheduleuser:nodejs /app/package*.json ./
 COPY --from=builder --chown=scheduleuser:nodejs /app/prisma ./prisma
-
 # Generate Prisma client after copying schema
 RUN npx prisma generate
-
-# Copy entrypoint script
-COPY --chown=scheduleuser:nodejs docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
 
 # Switch to non-root user
 USER scheduleuser
@@ -53,6 +48,5 @@ EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3002/health || exit 1
 
-# Set entrypoint and default command
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# Start the application directly
 CMD ["dumb-init", "node", "dist/index.js"]

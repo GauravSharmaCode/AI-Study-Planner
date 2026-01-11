@@ -5,8 +5,7 @@
   "private": true,
   "workspaces": [
     "services/*",
-    "apps/*",
-    "shared"
+    "apps/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
@@ -24,7 +23,7 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "docker:health": "bash dev-helper.sh",
+    "docker:health": "bash scripts/dev-helper.sh",
     "format": "prettier --write ."
   },
   "repository": {
