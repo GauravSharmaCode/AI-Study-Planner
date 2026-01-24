@@ -2,6 +2,56 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { createLogger } from '../utils/logger';
 
 /**
+ * Retry configuration for AI API calls
+ */
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  initialDelayMs: 1000,
+  maxDelayMs: 10000,
+  backoffMultiplier: 2,
+};
+
+/**
+ * Helper function to implement retry logic with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  operation: string,
+  logger: any,
+  retries = RETRY_CONFIG.maxRetries
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt === retries) {
+        logger.error(`${operation} failed after ${retries + 1} attempts`, {
+          error: lastError.message,
+        });
+        throw new Error(`${operation} failed after ${retries + 1} attempts: ${lastError.message}`);
+      }
+      
+      const delayMs = Math.min(
+        RETRY_CONFIG.initialDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt),
+        RETRY_CONFIG.maxDelayMs
+      );
+      
+      logger.warn(`${operation} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delayMs}ms`, {
+        error: lastError.message,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  
+  throw lastError!;
+}
+
+/**
  * A client class to encapsulate all interactions with the Google Generative AI API,
  * correctly using response schemas for structured output.
  */
@@ -24,18 +74,19 @@ export class AIAPIClient {
    */
   async generateContent(prompt: string): Promise<string> {
     this.logger.info('Requesting content from AI service...');
-    try {
-      const result = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: prompt
-      });
-      
-      return result.text || '';
-
-    } catch (error) {
-      this.logger.error('AI API call failed:', { error: (error as Error).message });
-      throw new Error(`AI content generation failed: ${(error as Error).message}`);
-    }
+    
+    return retryWithBackoff(
+      async () => {
+        const result = await this.ai.models.generateContent({
+          model: this.modelName,
+          contents: prompt
+        });
+        
+        return result.text || '';
+      },
+      'AI content generation',
+      this.logger
+    );
   }
 
   /**
@@ -45,36 +96,35 @@ export class AIAPIClient {
    */
   async generateResult(prompt: string): Promise<any> {
     this.logger.info('Requesting structured topics from AI service...');
-    try {
-      // CORRECTION: Using the correct 'ai.models.generateContent' syntax.
-      const result = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: [{ parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                name: { type: Type.STRING },
-                type: { type: Type.STRING },
-                difficulty: { type: Type.NUMBER },
-                duration: { type: Type.STRING },
+    
+    return retryWithBackoff(
+      async () => {
+        const result = await this.ai.models.generateContent({
+          model: this.modelName,
+          contents: [{ parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  difficulty: { type: Type.NUMBER },
+                  duration: { type: Type.STRING },
+                },
+                required: ["name", "type", "difficulty", "duration"]
               },
-              required: ["name", "type", "difficulty", "duration"]
             },
           },
-        },
-      });
-      
-      const response = result.text;
-      return response;
-
-    } catch (error) {
-      this.logger.error('AI API call for topics failed:', { error: (error as Error).message });
-      throw new Error('Failed to generate topics from AI service.');
-    }
+        });
+        
+        return result.text;
+      },
+      'AI topics generation',
+      this.logger
+    );
   }
 
   /**
@@ -84,28 +134,27 @@ export class AIAPIClient {
    */
   async generateTargets(prompt: string): Promise<any> {
     this.logger.info('Requesting structured targets from AI service...');
-    try {
-      // CORRECTION: Using the correct 'ai.models.generateContent' syntax.
-      const result = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: [{ parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.STRING,
+    
+    return retryWithBackoff(
+      async () => {
+        const result = await this.ai.models.generateContent({
+          model: this.modelName,
+          contents: [{ parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.STRING,
+              },
             },
           },
-        },
-      });
+        });
 
-      const response = result.text;
-      return response;
-
-    } catch (error) {
-      this.logger.error('AI API call for targets failed:', { error: (error as Error).message });
-      throw new Error('Failed to generate targets from AI service.');
-    }
+        return result.text;
+      },
+      'AI targets generation',
+      this.logger
+    );
   }
 }

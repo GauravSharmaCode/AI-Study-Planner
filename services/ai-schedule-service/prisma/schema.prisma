@@ -21,6 +21,7 @@ model StudyPlan {
   sessions StudySession[]
   
   @@index([userId])
+  @@index([userId, createdAt])
   @@map("study_plans")
 }
 
@@ -40,5 +41,7 @@ model StudySession {
   
   @@index([studyPlanId])
   @@index([date])
+  @@index([status])
+  @@index([studyPlanId, status])
   @@map("study_sessions")
 }

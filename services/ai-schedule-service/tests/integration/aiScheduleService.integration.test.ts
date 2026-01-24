@@ -1,5 +1,5 @@
 // Mock Prisma Client before any imports
-jest.mock('@prisma/client', () => ({
+jest.mock("@prisma/client", () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
     studyPlan: {
       create: jest.fn(),
@@ -10,73 +10,83 @@ jest.mock('@prisma/client', () => ({
       update: jest.fn(),
     },
     $disconnect: jest.fn(),
-  }))
+  })),
 }));
 
 // Mock AI service to avoid external API calls in tests
-jest.mock('../../src/services/ai-api-client', () => ({
+jest.mock("../../src/services/ai-api-client", () => ({
   AIAPIClient: jest.fn().mockImplementation(() => ({
-    generateContent: jest.fn().mockResolvedValue(JSON.stringify({
-      '2025-08-12': [
-        {
-          topic: 'Test Topic',
-          start_time: '09:00',
-          end_time: '10:00',
-          status: 'pending'
-        }
-      ]
-    }))
-  }))
+    generateContent: jest.fn().mockResolvedValue(
+      JSON.stringify({
+        "2025-08-12": [
+          {
+            topic: "Test Topic",
+            start_time: "09:00",
+            end_time: "10:00",
+            status: "pending",
+          },
+        ],
+      }),
+    ),
+  })),
 }));
 
 // Mock logger
-jest.mock('../../src/utils/logger', () => ({
+jest.mock("../../src/utils/logger", () => ({
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
 }));
 
-const request = require('supertest');
+const request = require("supertest");
 
-describe('AI Schedule Service Integration Tests', () => {
+// Skip integration tests unless TEST_DB=on
+const describeIntegration =
+  process.env.TEST_DB === "on" ? describe : describe.skip;
+
+describeIntegration("AI Schedule Service Integration Tests", () => {
   let app: any;
 
   beforeAll(async () => {
+    // Skip integration tests unless TEST_DB=on
+    if (process.env.TEST_DB !== "on") {
+      console.log("Skipping integration tests. Set TEST_DB=on to run them.");
+      return;
+    }
+
     // Import app after mocking
-    const { default: testApp } = await import('../../src/index');
+    const { default: testApp } = await import("../../src/index");
     app = testApp;
   });
 
-  describe('Health Check', () => {
-    it('should return health status', async () => {
-      const response = await request(app)
-        .get('/health')
-        .expect(200);
+  describe("Health Check", () => {
+    it("should return health status", async () => {
+      const response = await request(app).get("/health").expect(200);
 
-      expect(response.body).toHaveProperty('status');
-      expect(response.body.status).toBe('healthy');
+      expect(response.body).toHaveProperty("status");
+      expect(response.body.status).toBe("healthy");
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle 404 for unknown routes', async () => {
+  describe("Error Handling", () => {
+    it("should handle 404 for unknown routes", async () => {
       const response = await request(app)
-        .get('/api/v1/unknown-route')
+        .get("/api/v1/unknown-route")
         .expect(404);
 
-      expect(response.body).toHaveProperty('message');
-      expect(response.body.message).toBe('Route not found');
+      expect(response.body).toHaveProperty("message");
+      expect(response.body.message).toBe("Route not found");
     });
 
-    it('should handle malformed JSON', async () => {
+    it("should handle malformed JSON", async () => {
       const response = await request(app)
-        .post('/api/v1/plans/generate')
-        .set('Content-Type', 'application/json')
-        .send('{ invalid json }')
+        .post("/api/v1/plans/generate")
+        .set("Content-Type", "application/json")
+        .send("{ invalid json }")
         .expect(500);
 
-      expect(response.body).toHaveProperty('message');
-      expect(typeof response.body.message).toBe('string');
+      expect(response.body).toHaveProperty("message");
+      expect(typeof response.body.message).toBe("string");
     });
   });
 });

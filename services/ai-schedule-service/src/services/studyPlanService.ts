@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import { AIAPIClient } from './ai-api-client';
 import { StudyPlan } from '../schemas';
 import { createLogger } from "../utils/logger";
+import { prisma } from '../config/database';
+
 const logger = createLogger('study-plan-service');
 // ...
 
@@ -22,11 +24,11 @@ class StudyPlanService {
   private aiClient: AIAPIClient;
 
   /**
-   * Initializes the studyPlanService with a new PrismaClient and logger.
+   * Initializes the studyPlanService with a shared PrismaClient and logger.
    * @constructor
    */
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
     this.logger = logger;
     this.aiClient = new AIAPIClient(process.env.GOOGLE_GENAI_API_KEY || '');
   }

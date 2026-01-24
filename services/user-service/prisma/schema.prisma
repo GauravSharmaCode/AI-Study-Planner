@@ -24,5 +24,8 @@ model User {
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?
 
+  @@index([isActive])
+  @@index([role, isActive])
+  @@index([createdAt])
   @@map("users")
 }

@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import studyPlanService from '../services/studyPlanService';
-import { createLogger } from '../utils/logger';
-const logger = createLogger('study-plan-controller');
+import { Request, Response } from "express";
+import studyPlanService from "../services/studyPlanService";
+import { createLogger } from "../utils/logger";
+const logger = createLogger("study-plan-controller");
 
 export class StudyPlanController {
   /**
@@ -10,12 +10,19 @@ export class StudyPlanController {
    */
   async generateStudyPlan(req: Request, res: Response): Promise<void> {
     try {
-      const { subjects, availableHoursPerDay, targetCompletionDate, userId } = req.body;
+      const { subjects, availableHoursPerDay, targetCompletionDate, userId } =
+        req.body;
 
       // Validate required fields
-      if (!subjects || !availableHoursPerDay || !targetCompletionDate || !userId) {
+      if (
+        !subjects ||
+        !availableHoursPerDay ||
+        !targetCompletionDate ||
+        !userId
+      ) {
         res.status(400).json({
-          error: 'Missing required fields: subjects, availableHoursPerDay, targetCompletionDate, userId'
+          error:
+            "Missing required fields: subjects, availableHoursPerDay, targetCompletionDate, userId",
         });
         return;
       }
@@ -24,16 +31,15 @@ export class StudyPlanController {
         subjects,
         availableHoursPerDay,
         targetCompletionDate,
-        userId: String(userId)
+        userId: String(userId),
       });
 
       res.status(201).json(result);
-
     } catch (error) {
-      logger.error('Controller: Error generating study plan:', error);
+      logger.error("Controller: Error generating study plan:", error);
       res.status(500).json({
-        error: 'Failed to generate study plan',
-        message: (error as Error).message
+        error: "Failed to generate study plan",
+        message: (error as Error).message,
       });
     }
   }
@@ -44,22 +50,21 @@ export class StudyPlanController {
    */
   async getStudyPlan(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
 
       const result = await studyPlanService.getPlanById(id);
 
       if (!result) {
-        res.status(404).json({ error: 'Study plan not found' });
+        res.status(404).json({ error: "Study plan not found" });
         return;
       }
 
       res.status(200).json(result);
-
     } catch (error) {
-      logger.error('Controller: Error fetching study plan:', error);
+      logger.error("Controller: Error fetching study plan:", error);
       res.status(500).json({
-        error: 'Failed to fetch study plan',
-        message: (error as Error).message
+        error: "Failed to fetch study plan",
+        message: (error as Error).message,
       });
     }
   }
@@ -70,25 +75,24 @@ export class StudyPlanController {
    */
   async updateSessionStatus(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const { status } = req.body;
 
       await studyPlanService.updateSessionStatus(id, status);
 
-      res.status(200).json({ message: 'Session updated' });
-
+      res.status(200).json({ message: "Session updated" });
     } catch (error) {
-      logger.error('Controller: Error updating session status:', error);
-      
+      logger.error("Controller: Error updating session status:", error);
+
       // Handle validation errors with 400 status
-      if ((error as Error).message.includes('Invalid status')) {
+      if ((error as Error).message.includes("Invalid status")) {
         res.status(400).json({ error: (error as Error).message });
         return;
       }
 
       res.status(500).json({
-        error: 'Failed to update session',
-        message: (error as Error).message
+        error: "Failed to update session",
+        message: (error as Error).message,
       });
     }
   }
@@ -99,26 +103,20 @@ export class StudyPlanController {
    */
   async updateSessionRemarks(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const { remarks } = req.body;
 
       await studyPlanService.updateSessionRemarks(id, remarks);
 
-      res.status(200).json({ message: 'Remarks updated' });
-
+      res.status(200).json({ message: "Remarks updated" });
     } catch (error) {
-      logger.error('Controller: Error updating session remarks:', error);
+      logger.error("Controller: Error updating session remarks:", error);
       res.status(500).json({
-        error: 'Failed to update remarks',
-        message: (error as Error).message
+        error: "Failed to update remarks",
+        message: (error as Error).message,
       });
     }
   }
 }
 
 export default new StudyPlanController();
-
-
-
-
-

@@ -73,8 +73,9 @@ services:
       BCRYPT_ROUNDS: 12
       CORS_ORIGIN: http://localhost:3000
       LOG_LEVEL: info
-    ports:
-      - "3001:3001"
+    # Ports removed - access only through nginx gateway (port 8080)
+    # ports:
+    #   - "3001:3001"
     depends_on:
       user-db:
         condition: service_healthy
@@ -113,8 +114,9 @@ services:
       LOG_LEVEL: info
       SERVICE_TIMEOUT: 10000
       SERVICE_RETRY_ATTEMPTS: 3
-    ports:
-      - "3002:3002"
+    # Ports removed - access only through nginx gateway (port 8080)
+    # ports:
+    #   - "3002:3002"
     depends_on:
       schedule-db:
         condition: service_healthy
@@ -143,6 +145,7 @@ services:
     environment:
       NGINX_HOST: 0.0.0.0
       NGINX_PORT: 8080
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     ports:
       - "8080:8080"
       - "8090:8090"

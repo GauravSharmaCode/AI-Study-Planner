@@ -71,6 +71,11 @@ const prisma = new PrismaClient({
         { emit: "event", level: "error" },
         { emit: "event", level: "warn" },
       ],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL + "?connection_limit=10&pool_timeout=20&connect_timeout=10",
+    },
+  },
 });
 
 // Add query middleware
