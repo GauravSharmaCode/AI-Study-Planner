@@ -69,3 +69,44 @@ export const StudySessionSchema = z.object({
 });
 
 export type StudySession = z.infer<typeof StudySessionSchema>;
+
+// REQUEST SCHEMAS
+export const CreateStudyPlanSchema = z.object({
+  body: z.object({
+    subjects: z.array(z.string()).min(1, 'At least one subject is required'),
+    availableHoursPerDay: z.number().min(0.5).max(24),
+    targetCompletionDate: z.string().refine((val: string) => !isNaN(Date.parse(val)), {
+      message: 'Invalid date format',
+    }),
+
+    userId: z.string().min(1, 'User ID is required'),
+  }),
+});
+
+export const UpdateSessionStatusSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid session ID format'),
+  }),
+  body: z.object({
+    status: z.enum(['pending', 'completed', 'skipped'], {
+      message: 'Status must be pending, completed, or skipped',
+    }),
+  }),
+
+});
+
+export const UpdateSessionRemarksSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid session ID format'),
+  }),
+  body: z.object({
+    remarks: z.string().min(1, 'Remarks cannot be empty'),
+  }),
+});
+
+export const GetStudyPlanSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid study plan ID format'),
+  }),
+});
+

@@ -11,8 +11,16 @@ import {
   getUserStats,
   changePassword
 } from '../controllers/userController';
-import { userValidation, paginationValidation } from '../middleware/validation';
+import { validateRequest } from '../middleware/validateRequest';
+import {
+  CreateUserRequestSchema,
+  UpdateUserRequestSchema,
+  UserIdParamSchema,
+  PaginationQuerySchema,
+  ChangePasswordRequestSchema
+} from '../schemas';
 import { protect, restrictTo } from '../middleware/auth';
+
 
 const router = express.Router();
 
@@ -21,28 +29,29 @@ router.use(protect);
 
 // Current user routes
 router.get('/me', getMe, getUser);
-router.patch('/me', userValidation.update, updateMe);
+router.patch('/me', validateRequest(UpdateUserRequestSchema), updateMe);
 router.delete('/me', deleteMe);
 
 // User management routes - admin only for most operations
 router.get('/stats', restrictTo('admin'), getUserStats);
-router.get('/', restrictTo('admin'), paginationValidation, getAllUsers);
+router.get('/', restrictTo('admin'), validateRequest(PaginationQuerySchema), getAllUsers);
 
 // Admin-only user creation
-router.post('/', restrictTo('admin'), userValidation.create, createUser);
+router.post('/', restrictTo('admin'), validateRequest(CreateUserRequestSchema), createUser);
 
 router
   .route('/:id')
-  .get(userValidation.params, getUser)
-  .patch(userValidation.params, userValidation.update, restrictTo('admin'), updateUser)
-  .delete(userValidation.params, restrictTo('admin'), deleteUser);
+  .get(validateRequest(UserIdParamSchema), getUser)
+  .patch(validateRequest(UserIdParamSchema), validateRequest(UpdateUserRequestSchema), restrictTo('admin'), updateUser)
+  .delete(validateRequest(UserIdParamSchema), restrictTo('admin'), deleteUser);
 
 router.patch(
   '/:id/change-password',
-  userValidation.params,
-  userValidation.changePassword,
+  validateRequest(UserIdParamSchema),
+  validateRequest(ChangePasswordRequestSchema),
   restrictTo('admin'),
   changePassword
 );
+
 
 export default router;

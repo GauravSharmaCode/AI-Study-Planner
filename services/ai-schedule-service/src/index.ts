@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import studyPlanRoutes from './routes/studyPlanRoutes';
+import sessionRoutes from './routes/sessionRoutes';
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('api-server');
@@ -43,13 +44,13 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// MVP API Routes (matching requirements)
-app.use('/plans', studyPlanRoutes);  // /plans/generate, /plans/:id
-app.use('/sessions', studyPlanRoutes);  // /sessions/:id/status, /sessions/:id/remarks
+// API Routes
+app.use('/plans', studyPlanRoutes);
+app.use('/sessions', sessionRoutes);
 
-// Legacy API v1 Routes (for backward compatibility)
+// Versioned API v1 Routes
 app.use('/api/v1/plans', studyPlanRoutes);
-app.use('/api/v1/sessions', studyPlanRoutes);
+app.use('/api/v1/sessions', sessionRoutes);
 
 // Catch-all 404 handler
 app.use('*', (req: Request, res: Response) => {

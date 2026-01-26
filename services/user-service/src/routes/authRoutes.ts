@@ -1,9 +1,7 @@
-// Authentication Routes
-// Handles user registration, login, logout, and token management
-
 import express, { Request, Response } from 'express';
 import { register, login, logout } from '../controllers/authController';
-import { userValidation } from '../middleware/validation';
+import { validateRequest } from '../middleware/validateRequest';
+import { CreateUserRequestSchema, LoginRequestSchema } from '../schemas';
 import { optionalAuth } from '../middleware/auth';
 
 const router = express.Router();
@@ -14,8 +12,8 @@ const router = express.Router();
  * @access  Public
  * @body    { email, password, name, preferences? }
  */
-router.post('/register', 
-  userValidation.create,
+router.post('/register',
+  validateRequest(CreateUserRequestSchema),
   register
 );
 
@@ -26,9 +24,10 @@ router.post('/register',
  * @body    { email, password }
  */
 router.post('/login',
-  userValidation.login,
+  validateRequest(LoginRequestSchema),
   login
 );
+
 
 /**
  * @route   POST /api/v1/auth/logout
@@ -53,7 +52,7 @@ router.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     endpoints: [
       'POST /api/v1/auth/register',
-      'POST /api/v1/auth/login', 
+      'POST /api/v1/auth/login',
       'POST /api/v1/auth/logout'
     ]
   });
