@@ -18,7 +18,7 @@ interface CreatePlanRequest {
 
 // Mapping to usage: getAllPlans returns StudyPlan[].
 
-class StudyPlanService {
+export class StudyPlanService {
   private prisma: PrismaClient;
   private logger: any;
   private aiClient: AIAPIClient;
@@ -232,18 +232,11 @@ class StudyPlanService {
     Available hours per day: ${data.availableHoursPerDay}
     Target completion date: ${data.targetCompletionDate}
     
-    Return a JSON object with dates as keys and arrays of study sessions as values.
-    Each session should have: topic, start_time, end_time, status (default "pending").
-    Format: {"2025-08-12": [{"topic": "Algebra", "start_time": "09:00", "end_time": "10:00", "status": "pending"}]}`;
+    The output must strictly follow the defined JSON schema with an array of days, where each day contains the date and a list of sessions.
+    Each session must have a topic, startTime (HH:MM), and endTime (HH:MM).`;
 
-    const aiResponse = await this.aiClient.generateContent(prompt);
-    const jsonMatch = aiResponse.match(/\{.*\}/s);
-    
-    if (!jsonMatch) {
-      throw new Error('AI failed to generate valid study plan format');
-    }
-    
-    return JSON.parse(jsonMatch[0]);
+    // Use the structured output method
+    return await this.aiClient.generateStudyPlan(prompt);
   }
 
 
@@ -254,16 +247,39 @@ class StudyPlanService {
   private async createSessionsFromPlan(studyPlanId: string, plan: any): Promise<void> {
     const sessions = [];
     
-    for (const [date, daySessions] of Object.entries(plan)) {
-      for (const session of daySessions as any[]) {
-        sessions.push({
-          studyPlanId,
-          date,
-          topic: session.topic,
-          startTime: session.start_time,
-          endTime: session.end_time,
-          status: session.status || 'pending'
-        });
+    // Expecting plan to be an array of { date: string, sessions: [...] }
+    if (Array.isArray(plan)) {
+      for (const dayPlan of plan) {
+        const date = dayPlan.date;
+        if (dayPlan.sessions && Array.isArray(dayPlan.sessions)) {
+          for (const session of dayPlan.sessions) {
+            sessions.push({
+              studyPlanId,
+              date,
+              topic: session.topic,
+              startTime: session.startTime,
+              endTime: session.endTime,
+              status: 'pending'
+            });
+          }
+        }
+      }
+    } else {
+      // Fallback for backward compatibility or if AI returns object (unlikely with schema)
+      if (typeof plan === 'object') {
+        this.logger.warn('Received object instead of array for study plan, attempting to parse as legacy format');
+         for (const [date, daySessions] of Object.entries(plan)) {
+          for (const session of daySessions as any[]) {
+            sessions.push({
+              studyPlanId,
+              date,
+              topic: session.topic,
+              startTime: session.start_time || session.startTime,
+              endTime: session.end_time || session.endTime,
+              status: session.status || 'pending'
+            });
+          }
+        }
       }
     }
     
