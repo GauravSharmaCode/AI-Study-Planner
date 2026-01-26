@@ -27,89 +27,6 @@ export const PaginatedResponseSchema = ApiResponseSchema.extend({
 export type PaginatedResponse<T = any> = z.infer<typeof PaginatedResponseSchema> & { data?: T };
 
 // ===================================================================
-// USER SERVICE TYPES
-// ===================================================================
-
-export const UserSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  name: z.string(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  phone: z.string().optional(),
-  isActive: z.boolean(),
-  isVerified: z.boolean(),
-  role: z.string(),
-  lastLoginAt: z.union([z.date(), z.string()]).optional(),
-  createdAt: z.union([z.date(), z.string()]),
-  updatedAt: z.union([z.date(), z.string()]),
-  deletedAt: z.union([z.date(), z.string()]).optional().nullable()
-});
-export type User = z.infer<typeof UserSchema>;
-
-export const CreateUserRequestSchema = z.object({
-  email: z.string().email(),
-  name: z.string(),
-  password: z.string().min(6),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  phone: z.string().optional()
-});
-export type CreateUserRequest = z.infer<typeof CreateUserRequestSchema>;
-
-export const LoginRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string()
-});
-export type LoginRequest = z.infer<typeof LoginRequestSchema>;
-
-export const AuthResponseSchema = z.object({
-  user: UserSchema,
-  token: z.string(),
-  expiresIn: z.number()
-});
-export type AuthResponse = z.infer<typeof AuthResponseSchema>;
-
-export const UserServiceRequestSchema = z.object({
-  action: z.enum(['CREATE_USER', 'GET_USER', 'UPDATE_USER', 'DELETE_USER', 'VALIDATE_TOKEN']),
-  payload: z.any(),
-  userId: z.string().optional()
-});
-export type UserServiceRequest = z.infer<typeof UserServiceRequestSchema>;
-
-export const UserServiceResponseSchema = z.object({
-  success: z.boolean(),
-  data: UserSchema.optional(),
-  error: z.string().optional()
-});
-export type UserServiceResponse = z.infer<typeof UserServiceResponseSchema>;
-
-// ===================================================================
-// LOGGING & MONITORING
-// ===================================================================
-
-export const LogEntrySchema = z.object({
-  level: z.enum(['debug', 'info', 'warn', 'error']),
-  message: z.string(),
-  timestamp: z.string(),
-  serviceId: z.string(),
-  userId: z.string().optional(),
-  requestId: z.string().optional(),
-  metadata: z.record(z.string(), z.any()).optional() // Fixed usage of z.record
-});
-export type LogEntry = z.infer<typeof LogEntrySchema>;
-
-export const MetricDataSchema = z.object({
-  name: z.string(),
-  value: z.number(),
-  unit: z.string(),
-  timestamp: z.string(),
-  serviceId: z.string(),
-  tags: z.record(z.string(), z.string()).optional() // Fixed usage of z.record
-});
-export type MetricData = z.infer<typeof MetricDataSchema>;
-
-// ===================================================================
 // INTER-SERVICE COMMUNICATION
 // ===================================================================
 
@@ -141,3 +58,79 @@ export const ServiceEventSchema = z.object({
   userId: z.string().optional()
 });
 export type ServiceEvent = z.infer<typeof ServiceEventSchema>;
+
+// ===================================================================
+// USER SERVICE SCHEMAS
+// ===================================================================
+
+export const UserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  isActive: z.boolean(),
+  isVerified: z.boolean(),
+  role: z.string(),
+  lastLoginAt: z.union([z.date(), z.string()]).optional(),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
+  deletedAt: z.union([z.date(), z.string()]).optional().nullable()
+});
+export type User = z.infer<typeof UserSchema>;
+
+export const CreateUserBodySchema = z.object({
+  email: z.string().email('Invalid email address'),
+  name: z.string().min(1, 'Name is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  role: z.enum(['user', 'admin']).optional(),
+});
+
+export const UpdateUserBodySchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  role: z.enum(['user', 'admin']).optional(),
+  isActive: z.boolean().optional(),
+  isVerified: z.boolean().optional(),
+});
+
+export const LoginBodySchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const ChangePasswordBodySchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters long'),
+  confirmPassword: z.string()
+}).refine((data: any) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+// REQUEST ENVELOPES
+export const CreateUserRequestSchema = z.object({ body: CreateUserBodySchema });
+export const UpdateUserRequestSchema = z.object({ body: UpdateUserBodySchema });
+export const LoginRequestSchema = z.object({ body: LoginBodySchema });
+export const ChangePasswordRequestSchema = z.object({ body: ChangePasswordBodySchema });
+export const UserIdParamSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid user ID format'),
+  }),
+});
+
+export const PaginationQuerySchema = z.object({
+  query: z.object({
+    page: z.string().optional().transform((val: string | undefined) => (val ? parseInt(val, 10) : 1)),
+    limit: z.string().optional().transform((val: string | undefined) => (val ? parseInt(val, 10) : 10)),
+    sortBy: z.string().optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
+  }),
+});
+
+
