@@ -157,4 +157,57 @@ export class AIAPIClient {
       this.logger
     );
   }
+
+  /**
+   * Generates a study plan by providing a specific JSON schema to the model.
+   * @param prompt The prompt to generate the plan from.
+   * @returns A promise that resolves to the structured JSON object (parsed).
+   */
+  async generateStudyPlan(prompt: string): Promise<any> {
+    this.logger.info('Requesting structured study plan from AI service...');
+
+    return retryWithBackoff(
+      async () => {
+        const result = await this.ai.models.generateContent({
+          model: this.modelName,
+          contents: [{ parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  date: { type: Type.STRING },
+                  sessions: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        topic: { type: Type.STRING },
+                        startTime: { type: Type.STRING },
+                        endTime: { type: Type.STRING },
+                      },
+                      required: ["topic", "startTime", "endTime"]
+                    }
+                  }
+                },
+                required: ["date", "sessions"]
+              },
+            },
+          },
+        });
+
+        // The SDK returns a JSON string in result.text when using responseMimeType: "application/json"
+        // We parse it here to return a real object.
+        const text = result.text;
+        if (!text) {
+             throw new Error("AI returned empty response");
+        }
+        return JSON.parse(text);
+      },
+      'AI study plan generation',
+      this.logger
+    );
+  }
 }
