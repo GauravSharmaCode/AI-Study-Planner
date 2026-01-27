@@ -104,7 +104,7 @@ The application follows a microservices architecture with clear domain separatio
 2. **Set up environment variables**:
    ```bash
    # Copy environment templates
-   cp apps/api-gateway/.env.example apps/api-gateway/.env
+   cp apps/nginx-gateway/.env.example apps/nginx-gateway/.env
    cp services/user-service/.env.example services/user-service/.env
    cp services/ai-schedule-service/.env.example services/ai-schedule-service/.env
 
@@ -153,8 +153,8 @@ The application follows a microservices architecture with clear domain separatio
 
 3. **Start services in development mode**:
    ```bash
-   # Terminal 1 - API Gateway
-   cd apps/api-gateway
+   # Terminal 1 - NGINX Gateway
+   cd apps/nginx-gateway
    npm run dev
 
    # Terminal 2 - User Service
@@ -239,7 +239,7 @@ npm test
 # Run tests for specific service
 cd services/user-service && npm test
 cd services/ai-schedule-service && npm test
-cd apps/api-gateway && npm test
+cd apps/nginx-gateway && npm test
 
 # Run integration tests
 npm run test:integration
@@ -310,9 +310,6 @@ AI-Study-Planner/
 │   │   └── README.md
 │   └── ai-schedule-service/  # AI scheduling service
 │       └── [similar structure to user-service]
-├── shared/
-│   ├── types/               # Shared TypeScript types
-│   └── utils/               # Shared utilities
 ├── infra/
 │   ├── nginx.conf           # NGINX load balancer config
 │   ├── init-user-db.sql     # User DB initialization

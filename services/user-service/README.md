@@ -1,6 +1,6 @@
 # User Service
 
-A production-grade microservice for user management and authentication in the NeatSpend application. Built with Express.js, Prisma ORM, and PostgreSQL.
+A production-grade microservice for user management and authentication in the AI Study Planner application. Built with Express.js, Prisma ORM, and PostgreSQL.
 
 ## ✨ Features
 
@@ -86,10 +86,10 @@ npm install
 cp .env.example .env
 
 # Generate Prisma client
-npm run db:generate
+npm run prisma:generate
 
 # Run database migrations
-npm run db:migrate
+npm run prisma:migrate
 
 # Start development server
 npm run dev
@@ -115,7 +115,7 @@ PORT=3001
 SERVICE_NAME=user-service
 
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/neatspend_users?schema=public
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/user_service_db?schema=public
 
 # JWT Configuration
 JWT_SECRET=your-development-jwt-secret-change-in-production
@@ -139,7 +139,7 @@ POST /auth/register
 Content-Type: application/json
 
 {
-  "username": "johndoe",
+  "name": "John Doe",
   "email": "john@example.com",
   "password": "securePassword123",
   "firstName": "John",
@@ -155,11 +155,11 @@ Content-Type: application/json
   "data": {
     "user": {
       "id": "uuid",
-      "username": "johndoe",
+      "name": "John Doe",
       "email": "john@example.com",
       "firstName": "John",
       "lastName": "Doe",
-      "role": "USER",
+      "role": "user",
       "isActive": true,
       "createdAt": "2025-07-16T08:00:00.000Z"
     },
@@ -187,11 +187,11 @@ Content-Type: application/json
   "data": {
     "user": {
       "id": "uuid",
-      "username": "johndoe",
+      "name": "John Doe",
       "email": "john@example.com",
       "firstName": "John",
       "lastName": "Doe",
-      "role": "USER"
+      "role": "user"
     },
     "token": "jwt-token-here"
   }
@@ -252,7 +252,7 @@ Authorization: Bearer {admin-jwt-token}
 Content-Type: application/json
 
 {
-  "username": "newuser",
+  "name": "New User",
   "email": "newuser@example.com",
   "password": "securePassword123",
   "firstName": "New",
@@ -342,7 +342,7 @@ The service integrates with the main `docker-compose.yml` for:
 
 ### Logging Strategy
 ```javascript
-const logger = require('@neat-spend/logger');
+import { logger } from '@gauravsharmacode/neat-logger';
 
 // Structured logging with context
 logger.info('User registered successfully', {
@@ -388,34 +388,31 @@ logger.info('User registered successfully', {
 ### User Model
 ```prisma
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      Role     @default(USER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
+  id          String      @id @default(uuid())
+  email       String      @unique
+  name        String
+  firstName   String?
+  lastName    String?
+  password    String?
+  phone       String?
+  isActive    Boolean     @default(true)
+  isVerified  Boolean     @default(false)
+  role        String      @default("user")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 ```
 
 ### Migration Commands
 ```bash
 # Create new migration
-npm run db:migrate:dev
+npm run prisma:migrate
 
 # Deploy migrations to production
-npm run db:migrate:deploy
+npm run prisma:migrate:prod
 
 # Reset database (development only)
-npm run db:reset
+npx prisma migrate reset
 ```
 
 ## 🛠️ Development
@@ -431,9 +428,9 @@ npm run build            # Build for production
 npm run start            # Start production server
 
 # Database
-npm run db:generate      # Generate Prisma client
-npm run db:migrate       # Run migrations
-npm run db:studio        # Open Prisma Studio
+npm run prisma:generate  # Generate Prisma client
+npm run prisma:migrate   # Run migrations
+npx prisma studio        # Open Prisma Studio
 
 # Code Quality
 npm run lint             # ESLint check
@@ -493,4 +490,4 @@ npm run test:coverage    # Coverage report
 
 ---
 
-**Part of the NeatSpend microservices ecosystem** 🚀
+**Part of the AI Study Planner microservices ecosystem** 🚀
