@@ -27,7 +27,7 @@ Internet → NGINX Gateway (8080) → Services
 The gateway routes requests to:
 
 - **User Service**: `/api/v1/auth/*` and `/api/v1/users/*` → `user-service:3001`
-- **AI Schedule Service**: `/api/v1/schedules/*` and `/api/v1/study-plans/*` → `ai-schedule-service:3002`
+- **AI Schedule Service**: `/api/v1/plans/*` and `/api/v1/sessions/*` → `ai-schedule-service:3002`
 
 ### Rate Limiting Zones
 
@@ -50,13 +50,14 @@ The gateway routes requests to:
 - `POST /api/v1/auth/register` - User registration
 - `POST /api/v1/auth/login` - User login
 - `GET /api/v1/users/me` - Get current user
-- `POST /api/v1/schedules/generate` - Generate AI schedule
-- `GET /api/v1/study-plans` - Get study plans
+- `POST /api/v1/plans/generate` - Generate AI study plan
+- `GET /api/v1/plans/:id` - Get study plan
+- `PATCH /api/v1/sessions/:id/status` - Update session status
 
 ### Legacy Redirects
 - `/api/auth/*` → `/api/v1/auth/*` (301 redirect)
 - `/api/users/*` → `/api/v1/users/*` (301 redirect)
-- `/api/schedules/*` → `/api/v1/schedules/*` (301 redirect)
+- `/api/plans/*` → `/api/v1/plans/*` (301 redirect)
 
 ## Usage
 
