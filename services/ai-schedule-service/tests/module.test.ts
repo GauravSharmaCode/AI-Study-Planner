@@ -1,8 +1,8 @@
 // Simple module loading test
-describe('Module Loading Test', () => {
-  it('should load StudyPlanService', async () => {
+describe("Module Loading Test", () => {
+  it("should load StudyPlanService", async () => {
     // Mock the dependencies first
-    jest.mock('@prisma/client', () => ({
+    jest.mock("@prisma/client", () => ({
       PrismaClient: jest.fn(() => ({
         studyPlan: {
           create: jest.fn(),
@@ -16,20 +16,22 @@ describe('Module Loading Test', () => {
       })),
     }));
 
-    jest.mock('../src/services/ai-api-client', () => ({
+    jest.mock("../src/services/ai-api-client", () => ({
       AIAPIClient: jest.fn(() => ({
         generateContent: jest.fn(),
       })),
     }));
 
-    jest.mock('../src/utils/logger', () => ({
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
+    jest.mock("../src/utils/logger", () => ({
+      createLogger: jest.fn(() => ({
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+      })),
     }));
 
     // Now try to load the service
-    const studyPlanService = await import('../src/services/studyPlanService');
+    const studyPlanService = await import("../src/services/studyPlanService");
     expect(studyPlanService).toBeDefined();
     expect(studyPlanService.default).toBeDefined();
   });

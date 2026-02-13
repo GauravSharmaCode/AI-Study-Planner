@@ -1,165 +1,110 @@
 # AI Study Planner
 
-An AI-powered study planner application built with Express.js, Prisma ORM, and PostgreSQL.
+An AI-powered study planner microservices application built with TypeScript, Express.js, Prisma ORM, PostgreSQL, and Google Gemini AI.
 
-## Features
+## 🏗️ Architecture
 
-- User management with Prisma ORM
-- Study plan creation and tracking
-- Study session management
-- Resource management for study sessions
-- Logging with Winston
-- PostgreSQL database integration
+This project follows a **microservices architecture** managed as a **Monorepo**.
 
-## Prerequisites
+### Services
+- **User Service** (Port 3001): User management, authentication, and profiles
+- **AI Schedule Service** (Port 3002): AI-powered study plan generation and session management
+- **NGINX Gateway** (Port 8080): API gateway and load balancer
 
-- Node.js (v20 or higher)
-- PostgreSQL (Neon.tech)
-- npm
+### Shared Contracts (Schema-First Design)
+We use a **Zod-first** approach for API contracts and shared types.
+- **Runtime Validation**: All inter-service requests and events are validated at runtime.
+- **Type Safety**: TypeScript types are inferred directly from Zod schemas to ensure compile-time safety matches runtime reality.
+- **Decoupling**: Each service maintains its own copy of the shared contracts (`src/schemas/index.ts`) to allow for independent versioning and decoupling, while enforcing a strict protocol.
 
-## Installation
+### Infrastructure
+- **PostgreSQL Databases**: Separate databases for each service
+- **Redis**: Caching and session management
+- **Docker**: Full containerization
 
-1. Clone and setup:
+## ✨ Features
 
+- **AI-Powered Study Plans**: Generate personalized study schedules using Google Gemini AI
+- **Microservices Architecture**: Scalable, decoupled design
+- **User Management**: Secure auth with JWT
+- **Study Session Tracking**: Progress tracking with session status
+- **Docker Support**: "One-command" startup
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker and Docker Compose
+- Node.js 20+ (for local development)
+- Google Gemini AI API Key
+
+### Environment Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/GauravSharmaCode/AI-Study-Planner.git
+   cd AI-Study-Planner
+   ```
+
+2. **Create environment file**
+   Create a `.env` file in the root directory:
+   ```bash
+   GOOGLE_GENAI_API_KEY=your_key
+   JWT_SECRET=your_secret
+   # See .env.example for full list
+   ```
+
+3. **Start the application**
+   ```bash
+   docker-compose up -d --build
+   ```
+
+4. **Verify services**
+   ```bash
+   curl http://localhost:8080/health
+   ```
+
+## 👩‍💻 Development
+
+### Install Dependencies
 ```bash
-git clone https://github.com/GauravSharmaCode/AI-Study-Planner.git
-cd AI-Study-Planner
-npm install
+npm install # Installs dependencies for all workspaces
 ```
 
-2. Environment Configuration:  
-   Create a `.env` file in the `backend/` directory with the following content:
-
-```properties
-PORT=3000
-
-# Replace with your PostgreSQL connection string
-DATABASE_URL="postgresql://<username>:<password>@<host>/<database>?sslmode=require"
-```
-
-3. Database Setup:
-
+### Build & Validate
+We use Zod schemas to validate types during the build process.
 ```bash
-npx prisma generate
-npx prisma migrate dev --name init
+npm run build
 ```
 
-## API Endpoints
-
-### Fetch All Users
-
-```http
-GET /
-```
-
-**Success Response (200 OK)**
-
-```json
-[
-  {
-    "id": "1",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "createdAt": "2023-10-01T12:00:00.000Z",
-    "updatedAt": "2023-10-01T12:00:00.000Z"
-  }
-]
-```
-
-**Error Responses**
-
-- `500`: Internal Server Error
-
-## Database Schema
-
-```prisma
-model User {
-  id             String     @id @default(uuid())
-  email          String     @unique
-  name           String?
-  password       String?
-  googleId       String?    @unique
-  studyPlans     StudyPlan[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-}
-
-model StudyPlan {
-  id             String       @id @default(uuid())
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exam           String
-  studyDuration  String
-  dailyHours     Int
-  subjects       String[]
-  optionals      String[]
-  studyStyle     String[]
-  numberOfAttempts Int
-  studySessions  StudySession[]
-  createdAt      DateTime     @default(now())
-}
-
-model StudySession {
-  id             String      @id @default(uuid())
-  studyPlanId    String
-  studyPlan      StudyPlan   @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
-  day            Int
-  topics         String[]
-  completed      Boolean     @default(false)
-  resources      Resource[]
-}
-
-model Resource {
-  id            String      @id @default(uuid())
-  studySessionId String
-  studySession  StudySession @relation(fields: [studySessionId], references: [id], onDelete: Cascade)
-  type          String
-  url           String
-}
-```
-
-## Logging
-
-The application uses Winston for logging:
-
-- Logs are stored in the `backend/logs/` directory.
-- Separate logs for errors, combined logs, and query logs.
-
-## Running the Application
-
-**Development**
-
+### Run Locally
 ```bash
+# Terminal 1: User Service
+cd services/user-service
+npm run dev
+
+# Terminal 2: AI Schedule Service
+cd services/ai-schedule-service
 npm run dev
 ```
 
-**Production**
+## 🗄️ Database Schema
 
-```bash
-set NODE_ENV=production
-npm start
-```
+### User Service
+- `User`: Core authentication entity
 
-## Dependencies
+### AI Schedule Service
+- `StudyPlan`: Configuration for your study goals
+- `StudySession`: Daily study blocks generated by AI
 
-- express: Web framework
-- @prisma/client: Database ORM
-- dotenv: Environment variable management
-- winston: Logging
+## 🤝 Contributing
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Author
-
-Gaurav Sharma
-
-- GitHub: [@GauravSharmaCode](https://github.com/GauravSharmaCode)
-- Email: shrma.gurv@gmail.com
-
-## License
-
+## 📄 License
 ISC
 
-## Additional Resources
-
-- [Prisma Documentation](https://pris.ly/d/prisma-schema)
-- [Express.js Documentation](https://expressjs.com/)
-- [Winston Documentation](https://github.com/winstonjs/winston)
+## 👨‍💻 Author
+**Gaurav Sharma**

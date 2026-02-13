@@ -1,33 +1,61 @@
 import express from 'express';
 import studyPlanController from '../controllers/studyPlanController';
+import { validateRequest } from '../middleware/validateRequest';
+import { protect } from '../middleware/auth';
+import {
+    CreateStudyPlanSchema,
+    GetStudyPlanSchema,
+    UpdateStudyPlanSchema,
+    DeleteStudyPlanSchema,
+    RescheduleSchema,
+    GetAnalyticsSchema,
+} from '../schemas';
 
 const router = express.Router();
 
-/**
- * POST /plans/generate
- * Generate AI-based study plan
- * Body: { "subjects": ["Math", "Physics"], "availableHoursPerDay": 4, "targetCompletionDate": "2025-09-01", "userId": "user123" }
- */
-router.post('/generate', studyPlanController.generateStudyPlan);
+// All plan routes require authentication
+router.use(protect);
 
 /**
- * GET /plans/:id
- * Get existing study plan
+ * GET /
+ * Get all plans for the authenticated user (userId from JWT)
  */
-router.get('/:id', studyPlanController.getStudyPlan);
+router.get('/', studyPlanController.getAllPlans);
 
 /**
- * PATCH /sessions/:id/status
- * Update session status
- * Body: { "status": "completed" }
+ * POST /generate
+ * Generate AI-assisted deterministic study plan
  */
-router.patch('/sessions/:id/status', studyPlanController.updateSessionStatus);
+router.post('/generate', validateRequest(CreateStudyPlanSchema), studyPlanController.generateStudyPlan);
 
 /**
- * PATCH /sessions/:id/remarks
- * Update session remarks
- * Body: { "remarks": "Need to review formulas again" }
+ * GET /:id
+ * Get study plan by ID
  */
-router.patch('/sessions/:id/remarks', studyPlanController.updateSessionRemarks);
+router.get('/:id', validateRequest(GetStudyPlanSchema), studyPlanController.getStudyPlan);
+
+/**
+ * PUT /:id
+ * Update study plan metadata
+ */
+router.put('/:id', validateRequest(UpdateStudyPlanSchema), studyPlanController.updateStudyPlan);
+
+/**
+ * DELETE /:id
+ * Delete study plan and all sessions
+ */
+router.delete('/:id', validateRequest(DeleteStudyPlanSchema), studyPlanController.deleteStudyPlan);
+
+/**
+ * POST /:id/reschedule
+ * Trigger async rescheduling
+ */
+router.post('/:id/reschedule', validateRequest(RescheduleSchema), studyPlanController.reschedule);
+
+/**
+ * GET /:id/analytics
+ * Get coverage analytics
+ */
+router.get('/:id/analytics', validateRequest(GetAnalyticsSchema), studyPlanController.getAnalytics);
 
 export default router;

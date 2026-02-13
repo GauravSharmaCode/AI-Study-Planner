@@ -7,38 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// AI Schedule Service - Updated to match MVP requirements
+// AI Schedule Service - MVP Deterministic Engine Schema
 model StudyPlan {
   id                    String   @id @default(uuid())
   userId                String   // Reference to User service (no FK constraint)
+  examName              String?  // Optional exam name (e.g., "JEE Mains 2026")
   subjects              String[] // ["Math", "Physics"]
   availableHoursPerDay  Int      // 4
-  targetCompletionDate  DateTime // "2025-09-01"
-  plan                  Json     // Entire JSON plan structure
+  preferredStartTime    String   @default("08:00") // HH:mm format
+  targetCompletionDate  DateTime // Exam/target date
+  plan                  Json     // Generated deterministic schedule snapshot
+  isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  
+
   sessions StudySession[]
-  
+
   @@index([userId])
+  @@index([userId, createdAt])
   @@map("study_plans")
 }
 
 model StudySession {
-  id          String   @id @default(uuid())
-  studyPlanId String
-  date        String   // "2025-08-12"
-  topic       String   // "Algebra"
-  startTime   String   // "09:00"
-  endTime     String   // "10:00"
-  status      String   @default("pending") // "pending", "completed", "skipped"
-  remarks     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id               String   @id @default(uuid())
+  studyPlanId      String
+  date             DateTime // Day of the session (UTC)
+  topic            String   // "Algebra"
+  startTime        String   // "09:00"
+  endTime          String   // "10:30"
+  plannedMinutes   Int      // Duration allocated by the engine
+  completedMinutes Int?     // Actual minutes completed (null = not tracked)
+  isRevision       Boolean  @default(false) // true for spaced-revision sessions
+  status           String   @default("pending") // "pending", "completed", "skipped", "partial"
+  remarks          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   studyPlan StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
-  
+
   @@index([studyPlanId])
   @@index([date])
+  @@index([status])
+  @@index([studyPlanId, status])
+  @@index([studyPlanId, date])
   @@map("study_sessions")
 }

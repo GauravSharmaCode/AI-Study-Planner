@@ -122,56 +122,46 @@ Returns service health status and AI connection verification.
 
 ### Schedule Management
 
-#### Generate Daily Schedule
+#### Generate Study Plan
 
 ```http
-POST /api/v1/schedules/generate
+POST /api/v1/plans/generate
 Content-Type: application/json
 
 {
-  "studyPlan": {
-    "id": 1,
-    "userId": "user123",
-    "exam": "Computer Science Finals",
-    "subjects": ["Data Structures", "Algorithms", "Database Systems"],
-    "dailyHours": 6,
-    "preferences": {
-      "startTime": "09:00"
-    }
-  },
-  "dayNumber": 1,
-  "totalDays": 30
+  "subjects": ["Data Structures", "Algorithms", "Database Systems"],
+  "availableHoursPerDay": 6,
+  "targetCompletionDate": "2025-09-01",
+  "userId": "user123"
 }
 ```
 
-#### Get Schedule by ID
+#### Get Study Plan by ID
 
 ```http
-GET /api/v1/schedules/:id
+GET /api/v1/plans/:id
 ```
 
-#### Get Schedules by Study Plan
+#### Update Session Status
 
 ```http
-GET /api/v1/schedules/study-plan/:studyPlanId
-```
-
-#### Update Schedule
-
-```http
-PUT /api/v1/schedules/:id
+PATCH /api/v1/sessions/:id/status
 Content-Type: application/json
 
 {
-  "focus": "Updated focus area",
-  "sessions": { /* updated sessions */ }
+  "status": "completed"
 }
 ```
 
-#### Delete Schedule
+#### Update Session Remarks
 
 ```http
-DELETE /api/v1/schedules/:id
+PATCH /api/v1/sessions/:id/remarks
+Content-Type: application/json
+
+{
+  "remarks": "Focused on Binary Search Trees today"
+}
 ```
 
 ## Data Models
@@ -180,15 +170,14 @@ DELETE /api/v1/schedules/:id
 
 ```typescript
 interface StudyPlan {
-  id: number;
+  id: string;
   userId: string;
-  exam: string;
   subjects: string[];
-  dailyHours: number;
-  preferences?: {
-    startTime?: string;
-    breakDuration?: number;
-  };
+  availableHoursPerDay: number;
+  targetCompletionDate: string;
+  plan: any; // Entire JSON plan structure
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
@@ -255,22 +244,30 @@ The service handles AI quota limits gracefully:
 
 ## Database Schema
 
-```sql
--- Schedules table
-CREATE TABLE schedules (
-  id SERIAL PRIMARY KEY,
-  type VARCHAR(50) NOT NULL,
-  study_plan_id INTEGER NOT NULL,
-  user_id VARCHAR(255) NOT NULL,
-  day_number INTEGER NOT NULL,
-  focus TEXT NOT NULL,
-  sessions JSONB NOT NULL,
-  breaks JSONB DEFAULT '[]',
-  daily_targets JSONB DEFAULT '[]',
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+```prisma
+model StudyPlan {
+  id                    String   @id @default(uuid())
+  userId                String   
+  subjects              String[] 
+  availableHoursPerDay  Int      
+  targetCompletionDate  DateTime 
+  plan                  Json     
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model StudySession {
+  id          String   @id @default(uuid())
+  studyPlanId String
+  date        String   
+  topic       String   
+  startTime   String   
+  endTime     String   
+  status      String   @default("pending") 
+  remarks     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 ```
 
 ## Testing
