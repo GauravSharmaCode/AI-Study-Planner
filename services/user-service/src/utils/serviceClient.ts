@@ -180,7 +180,11 @@ export const userService = {
     );
 
     if (response.success && response.data) {
-      return { valid: true, userId: response.data.userId };
+      const data = response.data as { userId?: string };
+      if (data.userId) {
+        return { valid: true, userId: data.userId };
+      }
+      return { valid: true };
     }
 
     return { valid: false };

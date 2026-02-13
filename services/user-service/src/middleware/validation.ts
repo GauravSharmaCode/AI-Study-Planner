@@ -99,8 +99,8 @@ const userValidation = {
       .withMessage(
         "New password must contain at least one lowercase letter, one uppercase letter, and one number"
       ),
-    body("confirmPassword").custom((value: string, { req }: { req: Request }) => {
-      if (value !== req.body.newPassword) {
+    body("confirmPassword").custom((value, { req }) => {
+      if (value !== (req as Request).body.newPassword) {
         throw new Error("Password confirmation does not match password");
       }
       return true;
