@@ -13,12 +13,12 @@ export interface TopicEstimate {
   name: string;
   subject: string;
   estimatedHours: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
 }
 
 export interface NormalizedTopic extends TopicEstimate {
-  normalizedWeight: number;  // estimatedHours * difficultyMultiplier
-  totalMinutes: number;      // normalizedWeight * 60
+  normalizedWeight: number; // estimatedHours * difficultyMultiplier
+  totalMinutes: number; // normalizedWeight * 60
 }
 
 export interface ScheduleInput {
@@ -32,8 +32,8 @@ export interface ScheduleInput {
 export interface TimeBlock {
   topic: string;
   subject: string;
-  startTime: string;   // "HH:mm"
-  endTime: string;      // "HH:mm"
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
   plannedMinutes: number;
   isRevision: boolean;
 }
@@ -66,13 +66,18 @@ export class OverloadError extends Error {
   public readonly capacityMinutes: number;
   public readonly suggestedMinHours: number;
 
-  constructor(workloadMinutes: number, capacityMinutes: number, totalDays: number) {
-    const suggestedMinHours = Math.ceil(workloadMinutes / totalDays / 60 * 10) / 10;
+  constructor(
+    workloadMinutes: number,
+    capacityMinutes: number,
+    totalDays: number,
+  ) {
+    const suggestedMinHours =
+      Math.ceil((workloadMinutes / totalDays / 60) * 10) / 10;
     super(
       `Schedule overloaded: ${workloadMinutes} minutes needed but only ${capacityMinutes} minutes available. ` +
-      `Suggest increasing daily hours to at least ${suggestedMinHours}h or extending the target date.`
+        `Suggest increasing daily hours to at least ${suggestedMinHours}h or extending the target date.`,
     );
-    this.name = 'OverloadError';
+    this.name = "OverloadError";
     this.workloadMinutes = workloadMinutes;
     this.capacityMinutes = capacityMinutes;
     this.suggestedMinHours = suggestedMinHours;
@@ -97,6 +102,9 @@ const REVISION_INTERVALS = [3, 7, 14];
 /** Revision sessions are 25% of the original topic duration */
 const REVISION_DURATION_RATIO = 0.25;
 
+/** Max days to look ahead for a revision slot if the target day is full */
+const REVISION_LOOKAHEAD_DAYS = 3;
+
 // ─── Core Functions ─────────────────────────────────────────────────
 
 /**
@@ -105,16 +113,18 @@ const REVISION_DURATION_RATIO = 0.25;
 export function computeCapacity(
   targetCompletionDate: Date,
   today: Date,
-  availableHoursPerDay: number
+  availableHoursPerDay: number,
 ): CapacityResult {
-  const todayMidnight = new Date(Date.UTC(
-    today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()
-  ));
-  const targetMidnight = new Date(Date.UTC(
-    targetCompletionDate.getUTCFullYear(),
-    targetCompletionDate.getUTCMonth(),
-    targetCompletionDate.getUTCDate()
-  ));
+  const todayMidnight = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  );
+  const targetMidnight = new Date(
+    Date.UTC(
+      targetCompletionDate.getUTCFullYear(),
+      targetCompletionDate.getUTCMonth(),
+      targetCompletionDate.getUTCDate(),
+    ),
+  );
 
   const diffMs = targetMidnight.getTime() - todayMidnight.getTime();
   const totalDays = Math.max(1, Math.floor(diffMs / (24 * 60 * 60 * 1000)));
@@ -127,8 +137,10 @@ export function computeCapacity(
 /**
  * Step 1: Normalize topic effort using difficulty multipliers.
  */
-export function normalizeTopicEffort(topics: TopicEstimate[]): NormalizedTopic[] {
-  return topics.map(topic => {
+export function normalizeTopicEffort(
+  topics: TopicEstimate[],
+): NormalizedTopic[] {
+  return topics.map((topic) => {
     const multiplier = DIFFICULTY_MULTIPLIERS[topic.difficulty] ?? 1.0;
     const normalizedWeight = topic.estimatedHours * multiplier;
     return {
@@ -145,7 +157,7 @@ export function normalizeTopicEffort(topics: TopicEstimate[]): NormalizedTopic[]
 export function validateCapacity(
   workloadMinutes: number,
   capacityMinutes: number,
-  totalDays: number
+  totalDays: number,
 ): void {
   if (workloadMinutes > capacityMinutes) {
     throw new OverloadError(workloadMinutes, capacityMinutes, totalDays);
@@ -161,11 +173,14 @@ export function validateCapacity(
 export function distributeTopics(
   topics: NormalizedTopic[],
   totalDays: number,
-  dailyAvailableMinutes: number
+  dailyAvailableMinutes: number,
 ): Map<number, { topic: NormalizedTopic; minutes: number }[]> {
   // Initialize day loads: dayIndex -> current total minutes
   const dayLoads: number[] = new Array(totalDays).fill(0);
-  const dayAllocations = new Map<number, { topic: NormalizedTopic; minutes: number }[]>();
+  const dayAllocations = new Map<
+    number,
+    { topic: NormalizedTopic; minutes: number }[]
+  >();
 
   for (let d = 0; d < totalDays; d++) {
     dayAllocations.set(d, []);
@@ -198,9 +213,8 @@ export function distributeTopics(
 
       const chunk = Math.min(remaining, available);
       // Don't create sessions smaller than MIN_SESSION_MINUTES unless it's all that's left
-      const effectiveChunk = (chunk < MIN_SESSION_MINUTES && remaining > chunk)
-        ? 0
-        : chunk;
+      const effectiveChunk =
+        chunk < MIN_SESSION_MINUTES && remaining > chunk ? 0 : chunk;
 
       if (effectiveChunk <= 0) break;
 
@@ -226,12 +240,12 @@ export function distributeTopics(
  */
 export function generateTimeBlocks(
   dayAllocation: { topic: NormalizedTopic; minutes: number }[],
-  preferredStartTime: string
+  preferredStartTime: string,
 ): TimeBlock[] {
   const blocks: TimeBlock[] = [];
 
   // Parse start time
-  const [startHourStr, startMinuteStr] = preferredStartTime.split(':');
+  const [startHourStr, startMinuteStr] = preferredStartTime.split(":");
   const startHour = Number(startHourStr);
   const startMinute = Number(startMinuteStr);
   let currentMinuteOfDay = startHour * 60 + startMinute;
@@ -284,15 +298,15 @@ export function insertRevisionSessions(
   topics: NormalizedTopic[],
   targetCompletionDate: Date,
   preferredStartTime: string,
-  dailyAvailableMinutes: number
+  dailyAvailableMinutes: number,
 ): DayPlan[] {
-  const result = days.map(d => ({
+  const result = days.map((d) => ({
     ...d,
     blocks: [...d.blocks],
     totalMinutes: d.totalMinutes,
   }));
 
-  const topicMap = new Map(topics.map(t => [t.name, t]));
+  const topicMap = new Map(topics.map((t) => [t.name, t]));
 
   for (const [topicName, completionDay] of topicCompletionDays) {
     const topic = topicMap.get(topicName);
@@ -300,46 +314,56 @@ export function insertRevisionSessions(
 
     const revisionMinutes = Math.max(
       MIN_SESSION_MINUTES,
-      Math.round(topic.totalMinutes * REVISION_DURATION_RATIO)
+      Math.round(topic.totalMinutes * REVISION_DURATION_RATIO),
     );
 
     for (const interval of REVISION_INTERVALS) {
-      const revDay = completionDay + interval;
-      if (revDay >= result.length) continue; // past exam date
+      let inserted = false;
 
-      // Check if there's capacity on that day
-      const dayPlan = result[revDay];
-      if (dayPlan && dayPlan.totalMinutes + revisionMinutes > dailyAvailableMinutes) {
-        continue; // skip if day is too full
-      }
+      // Try target day and a few days forward
+      for (let offset = 0; offset <= REVISION_LOOKAHEAD_DAYS; offset++) {
+        const revDay = completionDay + interval + offset;
 
-      if (!dayPlan) continue;
+        if (revDay >= result.length) break; // past exam date, stop trying for this interval
 
-      // Find end time of last block on that day
-      let startMinute: number;
-      if (dayPlan.blocks.length > 0) {
-        const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
-        if (lastBlock) {
-          startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
-        } else {
-            // Should not be reachable if length > 0
-            const [hStr, mStr] = preferredStartTime.split(':');
-            startMinute = Number(hStr) * 60 + Number(mStr);
+        const dayPlan = result[revDay];
+        if (!dayPlan) continue;
+
+        // Check capacity
+        if (dayPlan.totalMinutes + revisionMinutes <= dailyAvailableMinutes) {
+          // Found a slot!
+
+          // Find end time of last block on that day
+          let startMinute: number;
+          if (dayPlan.blocks.length > 0) {
+            const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
+            if (lastBlock) {
+              startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
+            } else {
+              const [h = 8, m = 0] = preferredStartTime.split(":").map(Number);
+              startMinute = (h || 8) * 60 + (m || 0);
+            }
+          } else {
+            const [h = 8, m = 0] = preferredStartTime.split(":").map(Number);
+            startMinute = (h || 8) * 60 + (m || 0);
+          }
+
+          dayPlan.blocks.push({
+            topic: topicName,
+            subject: topic.subject,
+            startTime: minutesToHHMM(startMinute),
+            endTime: minutesToHHMM(startMinute + revisionMinutes),
+            plannedMinutes: revisionMinutes,
+            isRevision: true,
+          });
+          dayPlan.totalMinutes += revisionMinutes;
+          inserted = true;
+          break; // Stop looking for a slot for this interval
         }
-      } else {
-        const [hStr, mStr] = preferredStartTime.split(':');
-        startMinute = Number(hStr) * 60 + Number(mStr);
       }
 
-      dayPlan.blocks.push({
-        topic: topicName,
-        subject: topic.subject,
-        startTime: minutesToHHMM(startMinute),
-        endTime: minutesToHHMM(startMinute + revisionMinutes),
-        plannedMinutes: revisionMinutes,
-        isRevision: true,
-      });
-      dayPlan.totalMinutes += revisionMinutes;
+      // If !inserted, it means we couldn't fit it within the lookahead window.
+      // We silently skip it (best effort for MVP).
     }
   }
 
@@ -360,27 +384,44 @@ export function insertRevisionSessions(
  */
 export function generateSchedule(
   input: ScheduleInput,
-  today: Date = new Date()
+  today: Date = new Date(),
 ): ScheduleResult {
-  const { targetCompletionDate, availableHoursPerDay, preferredStartTime, topicEstimates } = input;
+  const {
+    targetCompletionDate,
+    availableHoursPerDay,
+    preferredStartTime,
+    topicEstimates,
+  } = input;
 
   // Step 1: Capacity
-  const capacity = computeCapacity(targetCompletionDate, today, availableHoursPerDay);
+  const capacity = computeCapacity(
+    targetCompletionDate,
+    today,
+    availableHoursPerDay,
+  );
 
   // Step 2: Normalize
   const normalized = normalizeTopicEffort(topicEstimates);
   const totalWorkload = normalized.reduce((sum, t) => sum + t.totalMinutes, 0);
 
   // Step 3: Validate
-  validateCapacity(totalWorkload, capacity.totalCapacityMinutes, capacity.totalDays);
+  validateCapacity(
+    totalWorkload,
+    capacity.totalCapacityMinutes,
+    capacity.totalDays,
+  );
 
   // Step 4: Distribute
-  const distribution = distributeTopics(normalized, capacity.totalDays, capacity.dailyAvailableMinutes);
+  const distribution = distributeTopics(
+    normalized,
+    capacity.totalDays,
+    capacity.dailyAvailableMinutes,
+  );
 
   // Step 5: Generate day plans with time blocks
-  const todayMidnight = new Date(Date.UTC(
-    today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()
-  ));
+  const todayMidnight = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  );
 
   const days: DayPlan[] = [];
   const topicCompletionDays = new Map<string, number>();
@@ -406,7 +447,7 @@ export function generateSchedule(
     normalized,
     targetCompletionDate,
     preferredStartTime,
-    capacity.dailyAvailableMinutes
+    capacity.dailyAvailableMinutes,
   );
 
   // Compute metadata
@@ -440,12 +481,12 @@ export function generateSchedule(
 export function minutesToHHMM(minutes: number): string {
   const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
 /** Convert "HH:mm" to minutes since midnight */
 export function hhmmToMinutes(hhmm: string): number {
-  const [hStr, mStr] = hhmm.split(':');
+  const [hStr, mStr] = hhmm.split(":");
   const h = Number(hStr);
   const m = Number(mStr);
   return h * 60 + m;
