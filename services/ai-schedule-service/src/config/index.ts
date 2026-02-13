@@ -20,7 +20,7 @@ export interface AppConfig {
         level: string;
     };
     database: {
-        url?: string;
+        url?: string | undefined;
     }
 }
 
@@ -43,7 +43,7 @@ const config: AppConfig = {
     database: {
         url: process.env.DATABASE_URL
     }
-};
+} as AppConfig;
 
 // Validation
 if (!config.googleGenAiKey && config.nodeEnv !== 'test') {

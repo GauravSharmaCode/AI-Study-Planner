@@ -83,16 +83,16 @@ describe('normalizeTopicEffort', () => {
     const normalized = normalizeTopicEffort(topics);
 
     // easy: 2 * 1.0 = 2.0h = 120min
-    expect(normalized[0].normalizedWeight).toBe(2.0);
-    expect(normalized[0].totalMinutes).toBe(120);
+    expect(normalized[0]?.normalizedWeight).toBe(2.0);
+    expect(normalized[0]?.totalMinutes).toBe(120);
 
     // hard: 4 * 1.5 = 6.0h = 360min
-    expect(normalized[1].normalizedWeight).toBe(6.0);
-    expect(normalized[1].totalMinutes).toBe(360);
+    expect(normalized[1]?.normalizedWeight).toBe(6.0);
+    expect(normalized[1]?.totalMinutes).toBe(360);
 
     // medium: 3 * 1.25 = 3.75h = 225min
-    expect(normalized[2].normalizedWeight).toBe(3.75);
-    expect(normalized[2].totalMinutes).toBe(225);
+    expect(normalized[2]?.normalizedWeight).toBe(3.75);
+    expect(normalized[2]?.totalMinutes).toBe(225);
   });
 
   it('should handle empty array', () => {
@@ -104,7 +104,7 @@ describe('normalizeTopicEffort', () => {
       { name: 'X', subject: 'Y', estimatedHours: 2, difficulty: 'unknown' as any },
     ];
     const normalized = normalizeTopicEffort(topics);
-    expect(normalized[0].normalizedWeight).toBe(2.0);
+    expect(normalized[0]?.normalizedWeight).toBe(2.0);
   });
 });
 
@@ -186,29 +186,35 @@ describe('generateTimeBlocks', () => {
     const topics = normalizeTopicEffort([
       { name: 'A', subject: 'S', estimatedHours: 1, difficulty: 'easy' },
     ]);
+    const topic0 = topics[0];
+    if (!topic0) throw new Error("Topic should exist");
+
     const blocks = generateTimeBlocks(
-      [{ topic: topics[0], minutes: 60 }],
+      [{ topic: topic0, minutes: 60 }],
       '09:00'
     );
 
-    expect(blocks[0].startTime).toBe('09:00');
-    expect(blocks[0].endTime).toBe('10:00');
-    expect(blocks[0].plannedMinutes).toBe(60);
+    expect(blocks[0]?.startTime).toBe('09:00');
+    expect(blocks[0]?.endTime).toBe('10:00');
+    expect(blocks[0]?.plannedMinutes).toBe(60);
   });
 
   it('should split sessions larger than 90 minutes', () => {
     const topics = normalizeTopicEffort([
       { name: 'Big', subject: 'S', estimatedHours: 3, difficulty: 'easy' },
     ]);
+    const topic0 = topics[0];
+    if (!topic0) throw new Error("Topic should exist");
+
     const blocks = generateTimeBlocks(
-      [{ topic: topics[0], minutes: 180 }],
+      [{ topic: topic0, minutes: 180 }],
       '08:00'
     );
 
     // 180 min → 90 + 90
     expect(blocks.length).toBe(2);
-    expect(blocks[0].plannedMinutes).toBe(90);
-    expect(blocks[1].plannedMinutes).toBe(90);
+    expect(blocks[0]?.plannedMinutes).toBe(90);
+    expect(blocks[1]?.plannedMinutes).toBe(90);
   });
 
   it('should add breaks between sessions', () => {
@@ -216,17 +222,21 @@ describe('generateTimeBlocks', () => {
       { name: 'A', subject: 'X', estimatedHours: 1, difficulty: 'easy' },
       { name: 'B', subject: 'Y', estimatedHours: 1, difficulty: 'easy' },
     ]);
+    const topic0 = topics[0];
+    const topic1 = topics[1];
+    if (!topic0 || !topic1) throw new Error("Topics should exist");
+
     const blocks = generateTimeBlocks(
       [
-        { topic: topics[0], minutes: 60 },
-        { topic: topics[1], minutes: 60 },
+        { topic: topic0, minutes: 60 },
+        { topic: topic1, minutes: 60 },
       ],
       '08:00'
     );
 
     // A: 08:00–09:00, break 10min, B: 09:10–10:10
-    expect(blocks[0].endTime).toBe('09:00');
-    expect(blocks[1].startTime).toBe('09:10');
+    expect(blocks[0]?.endTime).toBe('09:00');
+    expect(blocks[1]?.startTime).toBe('09:10');
   });
 
   it('should handle empty allocation', () => {
@@ -256,15 +266,15 @@ describe('insertRevisionSessions', () => {
     const result = insertRevisionSessions(days, completionDays, topics, exam, '08:00', 240);
 
     // Should have revision blocks on days 3, 7, 14
-    expect(result[3].blocks.length).toBe(1);
-    expect(result[3].blocks[0].isRevision).toBe(true);
-    expect(result[3].blocks[0].topic).toBe('Topic1');
+    expect(result[3]?.blocks.length).toBe(1);
+    expect(result[3]?.blocks[0]?.isRevision).toBe(true);
+    expect(result[3]?.blocks[0]?.topic).toBe('Topic1');
 
-    expect(result[7].blocks.length).toBe(1);
-    expect(result[7].blocks[0].isRevision).toBe(true);
+    expect(result[7]?.blocks.length).toBe(1);
+    expect(result[7]?.blocks[0]?.isRevision).toBe(true);
 
-    expect(result[14].blocks.length).toBe(1);
-    expect(result[14].blocks[0].isRevision).toBe(true);
+    expect(result[14]?.blocks.length).toBe(1);
+    expect(result[14]?.blocks[0]?.isRevision).toBe(true);
   });
 
   it('should skip revisions past exam date', () => {
@@ -284,9 +294,9 @@ describe('insertRevisionSessions', () => {
 
     const result = insertRevisionSessions(days, completionDays, topics, exam, '08:00', 240);
 
-    expect(result[3].blocks.length).toBe(1);
+    expect(result[3]?.blocks.length).toBe(1);
     // Day 4 (D+7 would be index 7 — out of bounds)
-    expect(result[4].blocks.length).toBe(0);
+    expect(result[4]?.blocks.length).toBe(0);
   });
 
   it('should skip revisions if day is full', () => {
@@ -306,9 +316,9 @@ describe('insertRevisionSessions', () => {
     const result = insertRevisionSessions(days, completionDays, topics, exam, '08:00', 240);
 
     // Day 3 was full — revision should be skipped for that interval
-    expect(result[3].blocks.length).toBe(0);
+    expect(result[3]?.blocks.length).toBe(0);
     // But D+7 should still have revision
-    expect(result[7].blocks.length).toBe(1);
+    expect(result[7]?.blocks.length).toBe(1);
   });
 });
 
@@ -379,7 +389,7 @@ describe('generateSchedule', () => {
     expect(result1.days.length).toBe(result2.days.length);
 
     for (let i = 0; i < result1.days.length; i++) {
-      expect(result1.days[i].blocks).toEqual(result2.days[i].blocks);
+      expect(result1.days[i]?.blocks).toEqual(result2.days[i]?.blocks);
     }
   });
 

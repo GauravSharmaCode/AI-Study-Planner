@@ -252,6 +252,15 @@ This document is for agentic coding agents operating in this monorepo. It captur
   - Scripts: `dev`, `build`, `start`, `test`, `test:watch`, `test:coverage`, `lint` (temporarily disabled), `lint:fix` (temporarily disabled).
   - TS config: strict mode; CommonJS; `esModuleInterop` enabled.
 
+## Dependency Management & Standardization
+
+To support both monorepo efficiency and independent Docker builds:
+- **Dev Dependencies**: Common tools (ESLint, Jest, Prettier) are hoisted to the root `package.json`.
+- **Runtime Dependencies**: Each service's `package.json` must explicitly list its runtime dependencies (e.g., `express`, `zod`, `winston`).
+- **Hybrid Dependencies**: Tools required for *both* local dev and Docker builds (specifically `typescript`, `ts-node`, `prisma` CLI, `@types/node`) must be present in **both** the root `package.json` (for local dev consistency) and the service `package.json` (for Docker `npm install`).
+- **Version Alignment**: You **MUST** ensure that versions of shared dependencies (Prisma, TypeScript, Node types) are identical across `services/user-service`, `services/ai-schedule-service`, and the root.
+- **TypeScript Config**: All services extend `tsconfig.base.json` in the root to ensure consistent strictness and compiler settings.
+
 ---
 
 Agents should keep this guide updated when tooling or conventions change. If you add Cursor/Copilot rules, new scripts, or config files, append their details here.

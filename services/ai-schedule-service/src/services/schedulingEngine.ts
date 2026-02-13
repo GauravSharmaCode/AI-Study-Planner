@@ -181,13 +181,16 @@ export function distributeTopics(
       // Find the day with the least current load (min-heap emulation)
       let minDay = 0;
       for (let d = 1; d < totalDays; d++) {
-        if (dayLoads[d] < dayLoads[minDay]) {
+        const loadD = dayLoads[d] ?? Infinity;
+        const loadMin = dayLoads[minDay] ?? Infinity;
+        if (loadD < loadMin) {
           minDay = d;
         }
       }
 
       // How much can we fit in this day?
-      const available = dailyAvailableMinutes - dayLoads[minDay];
+      const currentLoad = dayLoads[minDay] ?? 0;
+      const available = dailyAvailableMinutes - currentLoad;
       if (available <= 0) {
         // All days are full — this shouldn't happen if validateCapacity passed
         break;
@@ -201,8 +204,11 @@ export function distributeTopics(
 
       if (effectiveChunk <= 0) break;
 
-      dayAllocations.get(minDay)!.push({ topic, minutes: effectiveChunk });
-      dayLoads[minDay] += effectiveChunk;
+      const allocation = dayAllocations.get(minDay);
+      if (allocation) {
+        allocation.push({ topic, minutes: effectiveChunk });
+      }
+      dayLoads[minDay] = currentLoad + effectiveChunk;
       remaining -= effectiveChunk;
     }
   }
@@ -225,11 +231,16 @@ export function generateTimeBlocks(
   const blocks: TimeBlock[] = [];
 
   // Parse start time
-  const [startHour, startMinute] = preferredStartTime.split(':').map(Number);
+  const [startHourStr, startMinuteStr] = preferredStartTime.split(':');
+  const startHour = Number(startHourStr);
+  const startMinute = Number(startMinuteStr);
   let currentMinuteOfDay = startHour * 60 + startMinute;
 
   for (let i = 0; i < dayAllocation.length; i++) {
-    const { topic, minutes } = dayAllocation[i];
+    const allocation = dayAllocation[i];
+    if (!allocation) continue;
+
+    const { topic, minutes } = allocation;
     let remaining = minutes;
 
     while (remaining > 0) {
@@ -298,18 +309,26 @@ export function insertRevisionSessions(
 
       // Check if there's capacity on that day
       const dayPlan = result[revDay];
-      if (dayPlan.totalMinutes + revisionMinutes > dailyAvailableMinutes) {
+      if (dayPlan && dayPlan.totalMinutes + revisionMinutes > dailyAvailableMinutes) {
         continue; // skip if day is too full
       }
+
+      if (!dayPlan) continue;
 
       // Find end time of last block on that day
       let startMinute: number;
       if (dayPlan.blocks.length > 0) {
         const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
-        startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
+        if (lastBlock) {
+          startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
+        } else {
+            // Should not be reachable if length > 0
+            const [hStr, mStr] = preferredStartTime.split(':');
+            startMinute = Number(hStr) * 60 + Number(mStr);
+        }
       } else {
-        const [h, m] = preferredStartTime.split(':').map(Number);
-        startMinute = h * 60 + m;
+        const [hStr, mStr] = preferredStartTime.split(':');
+        startMinute = Number(hStr) * 60 + Number(mStr);
       }
 
       dayPlan.blocks.push({
@@ -426,6 +445,8 @@ export function minutesToHHMM(minutes: number): string {
 
 /** Convert "HH:mm" to minutes since midnight */
 export function hhmmToMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number);
+  const [hStr, mStr] = hhmm.split(':');
+  const h = Number(hStr);
+  const m = Number(mStr);
   return h * 60 + m;
 }
