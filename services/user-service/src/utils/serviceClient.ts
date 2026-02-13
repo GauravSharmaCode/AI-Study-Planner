@@ -1,15 +1,17 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from "axios";
 // import { createLogger } from './logger'; // Using neat-logger instead or adapting
-import { logWithMeta } from '@gauravsharmacode/neat-logger'; // Adapter for user-service
-import { ServiceRequest, ServiceResponse } from '../schemas';
+import { logWithMeta } from "@gauravsharmacode/neat-logger"; // Adapter for user-service
+import { ServiceResponse } from "../schemas";
 
 // Adapter to match createLogger interface if we re-implemented it, but since we are in user-service
 // which uses neat-logger, let's just make a simple wrapper or use logWithMeta directly.
 // The original code used a class or object with info/error methods.
 
 const logger = {
-  info: (msg: string, meta?: any) => logWithMeta(msg, { level: 'info', func: 'ServiceClient', extra: meta }),
-  error: (msg: string, meta?: any) => logWithMeta(msg, { level: 'error', func: 'ServiceClient', extra: meta }),
+  info: (msg: string, meta?: any) =>
+    logWithMeta(msg, { level: "info", func: "ServiceClient", extra: meta }),
+  error: (msg: string, meta?: any) =>
+    logWithMeta(msg, { level: "error", func: "ServiceClient", extra: meta }),
 };
 
 export class ServiceClient {
@@ -27,21 +29,21 @@ export class ServiceClient {
     endpoint: string,
     data?: any,
     options: {
-      method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      method?: "GET" | "POST" | "PUT" | "DELETE";
       headers?: Record<string, string>;
       userId?: string;
-    } = {}
+    } = {},
   ): Promise<ServiceResponse<T>> {
-    const { method = 'POST', headers = {}, userId } = options;
+    const { method = "POST", headers = {}, userId } = options;
     const requestId = this.generateRequestId();
-    
+
     try {
-      logger.info('Service request started', {
+      logger.info("Service request started", {
         service: this.serviceName,
         endpoint,
         method,
         requestId,
-        userId
+        userId,
       });
 
       const response: AxiosResponse<T> = await axios({
@@ -49,19 +51,19 @@ export class ServiceClient {
         url: `${this.serviceUrl}${endpoint}`,
         data,
         headers: {
-          'Content-Type': 'application/json',
-          'X-Request-ID': requestId,
-          'X-Service-Name': this.serviceName,
-          ...headers
+          "Content-Type": "application/json",
+          "X-Request-ID": requestId,
+          "X-Service-Name": this.serviceName,
+          ...headers,
         },
-        timeout: this.timeout
+        timeout: this.timeout,
       });
 
-      logger.info('Service request completed', {
+      logger.info("Service request completed", {
         service: this.serviceName,
         endpoint,
         status: response.status,
-        requestId
+        requestId,
       });
 
       return {
@@ -69,16 +71,15 @@ export class ServiceClient {
         data: response.data,
         requestId,
         timestamp: new Date().toISOString(),
-        serviceId: this.serviceName
+        serviceId: this.serviceName,
       };
-
     } catch (error: any) {
-      logger.error('Service request failed', {
+      logger.error("Service request failed", {
         service: this.serviceName,
         endpoint,
         error: error.message,
         requestId,
-        status: error.response?.status
+        status: error.response?.status,
       });
 
       return {
@@ -86,19 +87,19 @@ export class ServiceClient {
         error: error.response?.data?.message || error.message,
         requestId,
         timestamp: new Date().toISOString(),
-        serviceId: this.serviceName
+        serviceId: this.serviceName,
       };
     }
   }
 
   async healthCheck(): Promise<{ healthy: boolean; responseTime?: number }> {
     const startTime = Date.now();
-    
+
     try {
       await axios.get(`${this.serviceUrl}/health`, { timeout: 3000 });
       return {
         healthy: true,
-        responseTime: Date.now() - startTime
+        responseTime: Date.now() - startTime,
       };
     } catch (error) {
       return { healthy: false };
@@ -111,11 +112,11 @@ export class ServiceClient {
 }
 
 // Pre-configured service clients
-export const createUserServiceClient = (baseUrl: string) => 
-  new ServiceClient(baseUrl, 'user-service');
+export const createUserServiceClient = (baseUrl: string) =>
+  new ServiceClient(baseUrl, "user-service");
 
-export const createAIScheduleServiceClient = (baseUrl: string) => 
-  new ServiceClient(baseUrl, 'ai-schedule-service');
+export const createAIScheduleServiceClient = (baseUrl: string) =>
+  new ServiceClient(baseUrl, "ai-schedule-service");
 
 // Service discovery and health monitoring
 export class ServiceRegistry {
@@ -133,11 +134,13 @@ export class ServiceRegistry {
   }
 
   async checkHealth(): Promise<Map<string, boolean>> {
-    const promises = Array.from(this.services.entries()).map(async ([name, client]) => {
-      const { healthy } = await client.healthCheck();
-      this.healthStatus.set(name, healthy);
-      return [name, healthy] as [string, boolean];
-    });
+    const promises = Array.from(this.services.entries()).map(
+      async ([name, client]) => {
+        const { healthy } = await client.healthCheck();
+        this.healthStatus.set(name, healthy);
+        return [name, healthy] as [string, boolean];
+      },
+    );
 
     const results = await Promise.all(promises);
     return new Map(results);
@@ -157,11 +160,18 @@ export const serviceRegistry = new ServiceRegistry();
 
 // Utility functions for common service operations
 export const userService = {
-  async validateToken(token: string, userServiceUrl: string): Promise<{ valid: boolean; userId?: string }> {
+  async validateToken(
+    token: string,
+    userServiceUrl: string,
+  ): Promise<{ valid: boolean; userId?: string }> {
     const client = createUserServiceClient(userServiceUrl);
-    const response = await client.request('/auth/validate', { token }, {
-      method: 'POST'
-    });
+    const response = await client.request(
+      "/auth/validate",
+      { token },
+      {
+        method: "POST",
+      },
+    );
 
     if (response.success && response.data) {
       return { valid: true, userId: response.data.userId };
@@ -172,26 +182,34 @@ export const userService = {
 
   async getUserById(userId: string, userServiceUrl: string): Promise<any> {
     const client = createUserServiceClient(userServiceUrl);
-    return client.request(`/users/${userId}`, null, { method: 'GET' });
-  }
+    return client.request(`/users/${userId}`, null, { method: "GET" });
+  },
 };
 
 export const aiScheduleService = {
-  async createStudyPlan(studyPlanData: any, userId: string, serviceUrl: string): Promise<any> {
+  async createStudyPlan(
+    studyPlanData: any,
+    userId: string,
+    serviceUrl: string,
+  ): Promise<any> {
     const client = createAIScheduleServiceClient(serviceUrl);
-    return client.request('/study-plans', studyPlanData, {
-      method: 'POST',
-      userId
+    return client.request("/study-plans", studyPlanData, {
+      method: "POST",
+      userId,
     });
   },
 
-  async generateSchedule(scheduleData: any, userId: string, serviceUrl: string): Promise<any> {
+  async generateSchedule(
+    scheduleData: any,
+    userId: string,
+    serviceUrl: string,
+  ): Promise<any> {
     const client = createAIScheduleServiceClient(serviceUrl);
-    return client.request('/schedules/generate', scheduleData, {
-      method: 'POST',
-      userId
+    return client.request("/schedules/generate", scheduleData, {
+      method: "POST",
+      userId,
     });
-  }
+  },
 };
 
 export default ServiceClient;
