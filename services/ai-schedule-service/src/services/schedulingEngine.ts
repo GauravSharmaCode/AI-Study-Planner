@@ -14,6 +14,7 @@ export interface TopicEstimate {
   subject: string;
   estimatedHours: number;
   difficulty: 'easy' | 'medium' | 'hard';
+  generateRevisions?: boolean; // Default true. If false, no revisions generated.
 }
 
 export interface NormalizedTopic extends TopicEstimate {
@@ -96,6 +97,9 @@ const REVISION_INTERVALS = [3, 7, 14];
 
 /** Revision sessions are 25% of the original topic duration */
 const REVISION_DURATION_RATIO = 0.25;
+
+/** Max days to look ahead for a revision slot if the target day is full */
+const REVISION_LOOKAHEAD_DAYS = 3;
 
 // ─── Core Functions ─────────────────────────────────────────────────
 
@@ -266,6 +270,8 @@ export function generateTimeBlocks(
  * Revision duration = 25% of original topic minutes.
  * Sessions are appended to the target day if capacity allows.
  * If revision day exceeds targetCompletionDate, it is skipped.
+ *
+ * UPDATE: If target day is full, search up to REVISION_LOOKAHEAD_DAYS forward.
  */
 export function insertRevisionSessions(
   days: DayPlan[],
@@ -287,40 +293,55 @@ export function insertRevisionSessions(
     const topic = topicMap.get(topicName);
     if (!topic) continue;
 
+    // Respect flag to skip revision generation
+    if (topic.generateRevisions === false) continue;
+
     const revisionMinutes = Math.max(
       MIN_SESSION_MINUTES,
       Math.round(topic.totalMinutes * REVISION_DURATION_RATIO)
     );
 
     for (const interval of REVISION_INTERVALS) {
-      const revDay = completionDay + interval;
-      if (revDay >= result.length) continue; // past exam date
+      let inserted = false;
 
-      // Check if there's capacity on that day
-      const dayPlan = result[revDay];
-      if (dayPlan.totalMinutes + revisionMinutes > dailyAvailableMinutes) {
-        continue; // skip if day is too full
+      // Try target day and a few days forward
+      for (let offset = 0; offset <= REVISION_LOOKAHEAD_DAYS; offset++) {
+        const revDay = completionDay + interval + offset;
+
+        if (revDay >= result.length) break; // past exam date, stop trying for this interval
+
+        const dayPlan = result[revDay];
+
+        // Check capacity
+        if (dayPlan.totalMinutes + revisionMinutes <= dailyAvailableMinutes) {
+          // Found a slot!
+
+          // Find end time of last block on that day
+          let startMinute: number;
+          if (dayPlan.blocks.length > 0) {
+            const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
+            startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
+          } else {
+            const [h, m] = preferredStartTime.split(':').map(Number);
+            startMinute = h * 60 + m;
+          }
+
+          dayPlan.blocks.push({
+            topic: topicName,
+            subject: topic.subject,
+            startTime: minutesToHHMM(startMinute),
+            endTime: minutesToHHMM(startMinute + revisionMinutes),
+            plannedMinutes: revisionMinutes,
+            isRevision: true,
+          });
+          dayPlan.totalMinutes += revisionMinutes;
+          inserted = true;
+          break; // Stop looking for a slot for this interval
+        }
       }
 
-      // Find end time of last block on that day
-      let startMinute: number;
-      if (dayPlan.blocks.length > 0) {
-        const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
-        startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
-      } else {
-        const [h, m] = preferredStartTime.split(':').map(Number);
-        startMinute = h * 60 + m;
-      }
-
-      dayPlan.blocks.push({
-        topic: topicName,
-        subject: topic.subject,
-        startTime: minutesToHHMM(startMinute),
-        endTime: minutesToHHMM(startMinute + revisionMinutes),
-        plannedMinutes: revisionMinutes,
-        isRevision: true,
-      });
-      dayPlan.totalMinutes += revisionMinutes;
+      // If !inserted, it means we couldn't fit it within the lookahead window.
+      // We silently skip it (best effort for MVP).
     }
   }
 
