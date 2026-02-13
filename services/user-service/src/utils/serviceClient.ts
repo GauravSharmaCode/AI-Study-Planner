@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosResponse, AxiosError } from "axios";
 // import { createLogger } from './logger'; // Using neat-logger instead or adapting
 import { logWithMeta } from "@gauravsharmacode/neat-logger"; // Adapter for user-service
 import { ServiceResponse } from "../schemas";
@@ -8,10 +8,10 @@ import { ServiceResponse } from "../schemas";
 // The original code used a class or object with info/error methods.
 
 const logger = {
-  info: (msg: string, meta?: any) =>
-    logWithMeta(msg, { level: "info", func: "ServiceClient", extra: meta }),
-  error: (msg: string, meta?: any) =>
-    logWithMeta(msg, { level: "error", func: "ServiceClient", extra: meta }),
+  info: (msg: string, meta?: unknown) =>
+    logWithMeta(msg, { level: "info", func: "ServiceClient", extra: meta as Record<string, unknown> }),
+  error: (msg: string, meta?: unknown) =>
+    logWithMeta(msg, { level: "error", func: "ServiceClient", extra: meta as Record<string, unknown> }),
 };
 
 export class ServiceClient {
@@ -25,9 +25,9 @@ export class ServiceClient {
     this.timeout = timeout;
   }
 
-  async request<T = any>(
+  async request<T = unknown>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     options: {
       method?: "GET" | "POST" | "PUT" | "DELETE";
       headers?: Record<string, string>;
@@ -73,18 +73,24 @@ export class ServiceClient {
         timestamp: new Date().toISOString(),
         serviceId: this.serviceName,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as AxiosError | Error;
+      const message = axios.isAxiosError(err) ? err.message : (err as Error).message;
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const responseMessage = axios.isAxiosError(err) ? (err.response?.data as any)?.message : undefined;
+
       logger.error("Service request failed", {
         service: this.serviceName,
         endpoint,
-        error: error.message,
+        error: message,
         requestId,
-        status: error.response?.status,
+        status,
       });
 
       return {
         success: false,
-        error: error.response?.data?.message || error.message,
+        error: responseMessage || message,
         requestId,
         timestamp: new Date().toISOString(),
         serviceId: this.serviceName,
@@ -101,7 +107,7 @@ export class ServiceClient {
         healthy: true,
         responseTime: Date.now() - startTime,
       };
-    } catch (error) {
+    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
       return { healthy: false };
     }
   }
@@ -180,7 +186,10 @@ export const userService = {
     return { valid: false };
   },
 
-  async getUserById(userId: string, userServiceUrl: string): Promise<any> {
+  async getUserById(
+    userId: string,
+    userServiceUrl: string
+  ): Promise<ServiceResponse<unknown>> {
     const client = createUserServiceClient(userServiceUrl);
     return client.request(`/users/${userId}`, null, { method: "GET" });
   },
@@ -188,10 +197,10 @@ export const userService = {
 
 export const aiScheduleService = {
   async createStudyPlan(
-    studyPlanData: any,
+    studyPlanData: unknown,
     userId: string,
     serviceUrl: string,
-  ): Promise<any> {
+  ): Promise<ServiceResponse<unknown>> {
     const client = createAIScheduleServiceClient(serviceUrl);
     return client.request("/study-plans", studyPlanData, {
       method: "POST",
@@ -200,10 +209,10 @@ export const aiScheduleService = {
   },
 
   async generateSchedule(
-    scheduleData: any,
+    scheduleData: unknown,
     userId: string,
     serviceUrl: string,
-  ): Promise<any> {
+  ): Promise<ServiceResponse<unknown>> {
     const client = createAIScheduleServiceClient(serviceUrl);
     return client.request("/schedules/generate", scheduleData, {
       method: "POST",

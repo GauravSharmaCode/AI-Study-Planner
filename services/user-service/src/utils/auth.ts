@@ -76,13 +76,14 @@ export const signToken = (userId: string): string => {
 export const verifyToken = async (token: string): Promise<JwtPayload> => {
   const func = 'verifyToken';
   return new Promise((resolve, reject) => {
-    jwt.verify(token, config.jwt.secret, (err: VerifyErrors | null, decoded: any) => {
+    jwt.verify(token, config.jwt.secret, (err: VerifyErrors | null, decoded: unknown) => {
       if (err) {
         logWithMeta('JWT verification failed', { func, level: 'warn', extra: { error: err.message } });
         return reject(new Error('Failed to authenticate token'));
       }
-      logWithMeta('JWT verified successfully', { func, level: 'debug', extra: { userId: decoded.id } });
-      resolve(decoded as JwtPayload);
+      const payload = decoded as JwtPayload;
+      logWithMeta('JWT verified successfully', { func, level: 'debug', extra: { userId: payload.id } });
+      resolve(payload);
     });
   });
 };

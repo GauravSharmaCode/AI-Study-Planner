@@ -6,6 +6,7 @@ const logger = createLogger("database");
 /**
  * Prisma middleware to log database queries.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const queryLogger = () => {
   return async (params: any, next: (params: any) => Promise<any>) => {
     const before = Date.now();

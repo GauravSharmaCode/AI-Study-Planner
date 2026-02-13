@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 import { createLogger } from './logger';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ServiceRequest, ServiceResponse } from '../schemas';
 
 const logger = createLogger('service-client');
@@ -64,18 +65,19 @@ export class ServiceClient {
         serviceId: this.serviceName
       };
 
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-unused-vars
+      const err = error as any;
       logger.error('Service request failed', {
         service: this.serviceName,
         endpoint,
-        error: error.message,
+        error: err.message,
         requestId,
-        status: error.response?.status
+        status: err.response?.status
       });
 
       return {
         success: false,
-        error: error.response?.data?.message || error.message,
+        error: err.response?.data?.message || err.message,
         requestId,
         timestamp: new Date().toISOString(),
         serviceId: this.serviceName
@@ -92,7 +94,7 @@ export class ServiceClient {
         healthy: true,
         responseTime: Date.now() - startTime
       };
-    } catch (error) {
+    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
       return { healthy: false };
     }
   }
