@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { createLogger } from '../utils/logger';
+import { TopicEstimate } from './schedulingEngine';
 
 /**
  * Retry configuration for AI API calls
@@ -21,44 +22,50 @@ async function retryWithBackoff<T>(
   retries = RETRY_CONFIG.maxRetries
 ): Promise<T> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error as Error;
-      
+
       if (attempt === retries) {
         logger.error(`${operation} failed after ${retries + 1} attempts`, {
           error: lastError.message,
         });
         throw new Error(`${operation} failed after ${retries + 1} attempts: ${lastError.message}`);
       }
-      
+
       const delayMs = Math.min(
         RETRY_CONFIG.initialDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt),
         RETRY_CONFIG.maxDelayMs
       );
-      
+
       logger.warn(`${operation} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delayMs}ms`, {
         error: lastError.message,
       });
-      
+
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
-  
+
   throw lastError!;
 }
 
 /**
- * A client class to encapsulate all interactions with the Google Generative AI API,
- * correctly using response schemas for structured output.
+ * AI API Client — scoped for deterministic engine MVP.
+ *
+ * The AI is responsible ONLY for:
+ * 1. Topic breakdown per subject
+ * 2. Effort estimation (hours per topic)
+ * 3. Difficulty tagging (easy / medium / hard)
+ *
+ * The deterministic scheduling engine handles all schedule generation.
  */
 export class AIAPIClient {
   private readonly logger = createLogger('ai-client');
   private readonly ai: GoogleGenAI;
-  private readonly modelName: string = 'gemini-1.5-pro';
+  private readonly modelName: string = 'gemini-2.0-flash';
 
   constructor(apiKey: string) {
     if (!apiKey) {
@@ -68,35 +75,41 @@ export class AIAPIClient {
   }
 
   /**
-   * Simple content generation without structured schema
-   * @param prompt The prompt to send to the model
-   * @returns A promise that resolves to the text response
+   * Estimate topics for the given subjects.
+   *
+   * Uses structured output schema to get topic breakdown with:
+   * - Topic name
+   * - Parent subject
+   * - Estimated hours to study
+   * - Difficulty level (easy / medium / hard)
+   *
+   * This is the PRIMARY method for the deterministic engine MVP.
    */
-  async generateContent(prompt: string): Promise<string> {
-    this.logger.info('Requesting content from AI service...');
-    
-    return retryWithBackoff(
-      async () => {
-        const result = await this.ai.models.generateContent({
-          model: this.modelName,
-          contents: prompt
-        });
-        
-        return result.text || '';
-      },
-      'AI content generation',
-      this.logger
-    );
-  }
+  async estimateTopics(
+    subjects: string[],
+    examName?: string
+  ): Promise<TopicEstimate[]> {
+    this.logger.info('Requesting topic estimates from AI', {
+      subjects,
+      examName,
+    });
 
-  /**
-   * Generates a list of topics by providing a specific JSON schema to the model.
-   * @param prompt The prompt to generate topics from.
-   * @returns A promise that resolves to the structured JSON object.
-   */
-  async generateResult(prompt: string): Promise<any> {
-    this.logger.info('Requesting structured topics from AI service...');
-    
+    const contextLine = examName
+      ? `for the exam "${examName}"`
+      : 'for study preparation';
+
+    const prompt = `You are an expert educational planner. Break down the following subjects into individual study topics ${contextLine}.
+
+Subjects: ${subjects.join(', ')}
+
+For each topic, provide:
+- name: A specific, study-able topic name (e.g., "Quadratic Equations", not just "Algebra")
+- subject: The parent subject it belongs to
+- estimatedHours: Realistic hours needed to learn/review this topic (0.5 to 8 hours)
+- difficulty: One of "easy", "medium", or "hard"
+
+Be thorough but practical. Each topic should represent a single focused study session or a small number of sessions. Aim for topics that take 1-4 hours each on average.`;
+
     return retryWithBackoff(
       async () => {
         const result = await this.ai.models.generateContent({
@@ -110,103 +123,53 @@ export class AIAPIClient {
                 type: Type.OBJECT,
                 properties: {
                   name: { type: Type.STRING },
-                  type: { type: Type.STRING },
-                  difficulty: { type: Type.NUMBER },
-                  duration: { type: Type.STRING },
+                  subject: { type: Type.STRING },
+                  estimatedHours: { type: Type.NUMBER },
+                  difficulty: { type: Type.STRING },
                 },
-                required: ["name", "type", "difficulty", "duration"]
-              },
-            },
-          },
-        });
-        
-        return result.text;
-      },
-      'AI topics generation',
-      this.logger
-    );
-  }
-
-  /**
-   * Generates a list of daily targets by providing a specific JSON schema to the model.
-   * @param prompt The prompt to generate targets from.
-   * @returns A promise that resolves to the structured JSON object.
-   */
-  async generateTargets(prompt: string): Promise<any> {
-    this.logger.info('Requesting structured targets from AI service...');
-    
-    return retryWithBackoff(
-      async () => {
-        const result = await this.ai.models.generateContent({
-          model: this.modelName,
-          contents: [{ parts: [{ text: prompt }] }],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.STRING,
+                required: ["name", "subject", "estimatedHours", "difficulty"],
               },
             },
           },
         });
 
-        return result.text;
-      },
-      'AI targets generation',
-      this.logger
-    );
-  }
-
-  /**
-   * Generates a study plan by providing a specific JSON schema to the model.
-   * @param prompt The prompt to generate the plan from.
-   * @returns A promise that resolves to the structured JSON object (parsed).
-   */
-  async generateStudyPlan(prompt: string): Promise<any> {
-    this.logger.info('Requesting structured study plan from AI service...');
-
-    return retryWithBackoff(
-      async () => {
-        const result = await this.ai.models.generateContent({
-          model: this.modelName,
-          contents: [{ parts: [{ text: prompt }] }],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  date: { type: Type.STRING },
-                  sessions: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        topic: { type: Type.STRING },
-                        startTime: { type: Type.STRING },
-                        endTime: { type: Type.STRING },
-                      },
-                      required: ["topic", "startTime", "endTime"]
-                    }
-                  }
-                },
-                required: ["date", "sessions"]
-              },
-            },
-          },
-        });
-
-        // The SDK returns a JSON string in result.text when using responseMimeType: "application/json"
-        // We parse it here to return a real object.
         const text = result.text;
         if (!text) {
-             throw new Error("AI returned empty response");
+          throw new Error("AI returned empty response");
         }
-        return JSON.parse(text);
+
+        const parsed = JSON.parse(text) as TopicEstimate[];
+
+        // Validate and sanitize difficulty values
+        return parsed.map(topic => ({
+          ...topic,
+          difficulty: (['easy', 'medium', 'hard'].includes(topic.difficulty)
+            ? topic.difficulty
+            : 'medium') as 'easy' | 'medium' | 'hard',
+          estimatedHours: Math.max(0.5, Math.min(8, topic.estimatedHours)),
+        }));
       },
-      'AI study plan generation',
+      'AI topic estimation',
+      this.logger
+    );
+  }
+
+  /**
+   * Simple content generation (kept for general-purpose use).
+   */
+  async generateContent(prompt: string): Promise<string> {
+    this.logger.info('Requesting content from AI service...');
+
+    return retryWithBackoff(
+      async () => {
+        const result = await this.ai.models.generateContent({
+          model: this.modelName,
+          contents: prompt
+        });
+
+        return result.text || '';
+      },
+      'AI content generation',
       this.logger
     );
   }
