@@ -2,7 +2,7 @@
 
 ## Programming Languages & Versions
 - **TypeScript 5.7.2**: Primary language for type-safe development
-- **Node.js 18+**: Runtime environment with ES modules support
+- **Node.js 20+**: Runtime environment with ES modules support
 - **JavaScript**: Configuration files and legacy test components
 
 ## Core Technologies

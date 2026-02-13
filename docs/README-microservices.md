@@ -74,7 +74,7 @@ The application follows a microservices architecture with clear domain separatio
 
 ## 🛠️ Technology Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 20+
 - **Language**: TypeScript
 - **Framework**: Express.js
 - **Database**: PostgreSQL 16
@@ -90,7 +90,7 @@ The application follows a microservices architecture with clear domain separatio
 
 ### Prerequisites
 - Docker and Docker Compose
-- Node.js 18+ (for local development)
+- Node.js 20+ (for local development)
 - Git
 
 ### Environment Setup

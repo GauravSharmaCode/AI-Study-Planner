@@ -6,7 +6,7 @@ This guide helps you migrate from the JavaScript monolith to the new TypeScript 
 
 ## 📋 Prerequisites
 
-- Node.js 18+ and npm 8+
+- Node.js 20+ and npm 10+
 - Docker and Docker Compose
 - PostgreSQL 16+
 - Google Gemini API key
