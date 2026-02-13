@@ -55,7 +55,7 @@ ai-schedule-service/
 
 ## Prerequisites
 
-- Node.js 18+ 
+- Node.js 20+
 - PostgreSQL database
 - Google Gemini AI API key
 - Docker (for containerized deployment)

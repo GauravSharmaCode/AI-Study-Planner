@@ -13,7 +13,7 @@ This document is for agentic coding agents operating in this monorepo. It captur
 
 ## Node, Tooling, and Engines
 
-- Node: root `package.json` requires `node >=18.0.0`; README suggests Node 20+ for local dev. Prefer Node 20.
+- Node: root `package.json` requires `node >=20.0.0`; README suggests Node 20+ for local dev. Prefer Node 20.
 - TypeScript: root `typescript ^5.7.x`; services pin TS in their own `devDependencies`.
 - Jest, ts-jest in services for testing.
 - ESLint present; `ai-schedule-service` temporarily disables lint scripts due to ESLint 9.x compatibility.
