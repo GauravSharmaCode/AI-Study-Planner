@@ -1,7 +1,105 @@
 import { z } from 'zod';
 
 // ===================================================================
-// MICROSERVICES COMMUNICATION SCHEMAS
+// STUDY PLAN SCHEMAS
+// ===================================================================
+
+export const CreateStudyPlanSchema = z.object({
+  body: z.object({
+    subjects: z.array(z.string()).min(1, 'At least one subject is required'),
+    availableHoursPerDay: z.number().min(0.5, 'Minimum 0.5 hours per day').max(12, 'Maximum 12 hours per day'),
+    targetCompletionDate: z.string().refine(
+      (val: string) => {
+        const d = new Date(val);
+        return !isNaN(d.getTime()) && d > new Date();
+      },
+      { message: 'Must be a valid future date' }
+    ),
+    examName: z.string().optional(),
+    preferredStartTime: z.string()
+      .regex(/^\d{2}:\d{2}$/, 'Must be HH:mm format')
+      .optional()
+      .default('08:00'),
+  }),
+});
+
+export const GetStudyPlanSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid study plan ID format'),
+  }),
+});
+
+export const UpdateStudyPlanSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid study plan ID format'),
+  }),
+  body: z.object({
+    examName: z.string().optional(),
+    subjects: z.array(z.string()).min(1).optional(),
+    availableHoursPerDay: z.number().min(0.5).max(12).optional(),
+    preferredStartTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    targetCompletionDate: z.string().refine(
+      (val: string) => !isNaN(Date.parse(val)),
+      { message: 'Invalid date format' }
+    ).optional(),
+  }).refine(
+    (data) => Object.keys(data).length > 0,
+    { message: 'At least one field must be provided for update' }
+  ),
+});
+
+export const DeleteStudyPlanSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid study plan ID format'),
+  }),
+});
+
+// ===================================================================
+// SESSION SCHEMAS
+// ===================================================================
+
+export const UpdateSessionStatusSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid session ID format'),
+  }),
+  body: z.object({
+    status: z.enum(['pending', 'completed', 'skipped', 'partial'], {
+      message: 'Status must be pending, completed, skipped, or partial',
+    }),
+    completedMinutes: z.number().int().min(0).optional(),
+    remarks: z.string().optional(),
+  }),
+});
+
+export const UpdateSessionRemarksSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid session ID format'),
+  }),
+  body: z.object({
+    remarks: z.string().min(1, 'Remarks cannot be empty'),
+  }),
+});
+
+// ===================================================================
+// RESCHEDULE SCHEMA
+// ===================================================================
+
+export const RescheduleSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid study plan ID format'),
+  }),
+});
+
+// GetAllPlansSchema removed — userId is resolved from JWT token internally
+
+export const GetAnalyticsSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid study plan ID format'),
+  }),
+});
+
+// ===================================================================
+// SERVICE COMMUNICATION TYPES (for backward compatibility)
 // ===================================================================
 
 export const ServiceRequestSchema = z.object({
@@ -26,7 +124,6 @@ export const ServiceResponseSchema = z.object({
 
 export type ServiceResponse<T = any> = z.infer<typeof ServiceResponseSchema> & { data?: T };
 
-// Events for service communication
 export const ServiceEventSchema = z.object({
   eventType: z.string(),
   serviceId: z.string(),
@@ -36,77 +133,3 @@ export const ServiceEventSchema = z.object({
 });
 
 export type ServiceEvent = z.infer<typeof ServiceEventSchema>;
-
-// ===================================================================
-// AI SCHEDULE SERVICE TYPES
-// ===================================================================
-
-// Matches Prisma Model in ai-schedule-service/prisma/schema.prisma
-export const StudyPlanSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  subjects: z.array(z.string()),
-  availableHoursPerDay: z.number(),
-  targetCompletionDate: z.union([z.date(), z.string()]),
-  plan: z.any(), // JSON structure
-  createdAt: z.union([z.date(), z.string()]),
-  updatedAt: z.union([z.date(), z.string()])
-});
-
-export type StudyPlan = z.infer<typeof StudyPlanSchema>;
-
-export const StudySessionSchema = z.object({
-  id: z.string(),
-  studyPlanId: z.string(),
-  date: z.string(),
-  topic: z.string(),
-  startTime: z.string(),
-  endTime: z.string(),
-  status: z.string(), // pending, completed, skipped
-  remarks: z.string().nullable().optional(),
-  createdAt: z.union([z.date(), z.string()]),
-  updatedAt: z.union([z.date(), z.string()])
-});
-
-export type StudySession = z.infer<typeof StudySessionSchema>;
-
-// REQUEST SCHEMAS
-export const CreateStudyPlanSchema = z.object({
-  body: z.object({
-    subjects: z.array(z.string()).min(1, 'At least one subject is required'),
-    availableHoursPerDay: z.number().min(0.5).max(24),
-    targetCompletionDate: z.string().refine((val: string) => !isNaN(Date.parse(val)), {
-      message: 'Invalid date format',
-    }),
-
-    userId: z.string().min(1, 'User ID is required'),
-  }),
-});
-
-export const UpdateSessionStatusSchema = z.object({
-  params: z.object({
-    id: z.string().uuid('Invalid session ID format'),
-  }),
-  body: z.object({
-    status: z.enum(['pending', 'completed', 'skipped'], {
-      message: 'Status must be pending, completed, or skipped',
-    }),
-  }),
-
-});
-
-export const UpdateSessionRemarksSchema = z.object({
-  params: z.object({
-    id: z.string().uuid('Invalid session ID format'),
-  }),
-  body: z.object({
-    remarks: z.string().min(1, 'Remarks cannot be empty'),
-  }),
-});
-
-export const GetStudyPlanSchema = z.object({
-  params: z.object({
-    id: z.string().uuid('Invalid study plan ID format'),
-  }),
-});
-
