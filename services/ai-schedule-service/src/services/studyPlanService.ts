@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, StudySession, StudyPlan } from "@prisma/client";
 import { AIAPIClient } from './ai-api-client';
 import { createLogger } from "../utils/logger";
 import { prisma } from '../config/database';
@@ -41,39 +41,6 @@ export interface CoverageAnalytics {
   daysRemaining: number;
   remainingWorkloadMinutes: number;
   isAtRisk: boolean;
-}
-
-// ─── Local Type Extensions (Until prisma generate runs) ──────────────────
-
-interface ExtendedStudySession {
-  id: string;
-  studyPlanId: string;
-  date: Date;
-  topic: string;
-  startTime: string;
-  endTime: string;
-  plannedMinutes: number;
-  completedMinutes: number | null;
-  isRevision: boolean;
-  status: string;
-  remarks: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ExtendedStudyPlan {
-  id: string;
-  userId: string;
-  examName: string | null;
-  subjects: string[];
-  availableHoursPerDay: number;
-  preferredStartTime: string;
-  targetCompletionDate: Date;
-  plan: any;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  sessions: ExtendedStudySession[];
 }
 
 // ─── Service Class ──────────────────────────────────────────────────
@@ -135,7 +102,6 @@ export class StudyPlanService {
     // Step 3: Persist everything in a transaction
     const studyPlan = await this.prisma.$transaction(async (tx) => {
       // Create the study plan
-      // Cast to any because Prisma types are outdated (missing examName, preferredStartTime, etc.)
       const plan = await tx.studyPlan.create({
         data: {
           userId: data.userId,
@@ -146,14 +112,13 @@ export class StudyPlanService {
           targetCompletionDate: targetDate,
           plan: this.scheduleResultToJson(scheduleResult),
           isActive: true,
-        } as any,
+        },
       });
 
       // Bulk-create sessions
       const sessionData = this.scheduleResultToSessions(plan.id, scheduleResult);
       if (sessionData.length > 0) {
-        // Cast to any because Prisma types don't know about plannedMinutes/isRevision yet
-        await tx.studySession.createMany({ data: sessionData as any });
+        await tx.studySession.createMany({ data: sessionData });
       }
 
       return plan;
@@ -178,14 +143,14 @@ export class StudyPlanService {
     const studyPlan = await this.prisma.studyPlan.findUnique({
       where: { id },
       include: { sessions: { orderBy: { date: 'asc' } } },
-    }) as unknown as ExtendedStudyPlan | null;
+    });
 
     if (!studyPlan) return null;
 
     return {
       planId: studyPlan.id,
       userId: studyPlan.userId,
-      examName: studyPlan.examName || undefined, // Handle null vs undefined mismatch if any
+      examName: studyPlan.examName || undefined,
       subjects: studyPlan.subjects,
       availableHoursPerDay: studyPlan.availableHoursPerDay,
       preferredStartTime: studyPlan.preferredStartTime,
@@ -202,10 +167,10 @@ export class StudyPlanService {
 
   async getAllPlans(userId: string) {
     return this.prisma.studyPlan.findMany({
-      where: { userId, isActive: true } as any, // Cast for isActive
+      where: { userId, isActive: true },
       include: { sessions: { orderBy: { date: 'asc' } } },
       orderBy: { createdAt: 'desc' },
-    }) as unknown as Promise<ExtendedStudyPlan[]>;
+    });
   }
 
   // ─── UPDATE PLAN ────────────────────────────────────────────────
@@ -221,7 +186,7 @@ export class StudyPlanService {
         ...(updateData.targetCompletionDate && {
           targetCompletionDate: new Date(updateData.targetCompletionDate),
         }),
-      } as any,
+      },
     });
 
     return studyPlan;
@@ -231,8 +196,8 @@ export class StudyPlanService {
 
   async deletePlanById(id: string): Promise<boolean> {
     await this.prisma.$transaction(async (tx) => {
-      await tx.studySession.deleteMany({ where: { studyPlanId: id } } as any);
-      await tx.studyPlan.delete({ where: { id } } as any);
+      await tx.studySession.deleteMany({ where: { studyPlanId: id } });
+      await tx.studyPlan.delete({ where: { id } });
     });
     return true;
   }
@@ -242,7 +207,7 @@ export class StudyPlanService {
   async deactivatePlan(id: string): Promise<void> {
     await this.prisma.studyPlan.update({
       where: { id },
-      data: { isActive: false } as any,
+      data: { isActive: false },
     });
   }
 
@@ -269,8 +234,8 @@ export class StudyPlanService {
         status,
         ...(completedMinutes !== undefined && { completedMinutes }),
         ...(remarks !== undefined && { remarks }),
-      } as any,
-    }) as unknown as ExtendedStudySession;
+      },
+    });
 
     // Trigger async rescheduling for skipped or partial sessions
     if (status === 'skipped' || status === 'partial') {
@@ -312,7 +277,7 @@ export class StudyPlanService {
     const plan = await this.prisma.studyPlan.findUnique({
       where: { id: studyPlanId },
       include: { sessions: true },
-    }) as unknown as ExtendedStudyPlan | null;
+    });
 
     if (!plan) throw new Error(`Study plan not found: ${studyPlanId}`);
     if (!plan.isActive) throw new Error(`Study plan is deactivated: ${studyPlanId}`);
@@ -323,13 +288,13 @@ export class StudyPlanService {
     ));
 
     // Compute remaining workload from incomplete sessions
-    const allSessions = plan.sessions as unknown as ExtendedStudySession[];
     let remainingMinutes = 0;
 
-    // Collect topics that still need work
-    const topicRemainingMinutes = new Map<string, { minutes: number; subject: string }>();
+    // Collect topics that still need work, separated by type
+    // Map<topicName, { studyMinutes, revisionMinutes, subject }>
+    const topicWorkload = new Map<string, { studyMinutes: number; revisionMinutes: number; subject: string }>();
 
-    for (const session of allSessions) {
+    for (const session of plan.sessions) {
       if (session.status === 'completed') continue;
 
       // For skipped/pending/partial sessions
@@ -346,11 +311,16 @@ export class StudyPlanService {
       
       if (unfinishedMinutes <= 0) continue;
 
-      const existing = topicRemainingMinutes.get(session.topic) || { minutes: 0, subject: '' };
-      topicRemainingMinutes.set(session.topic, {
-        minutes: existing.minutes + unfinishedMinutes,
-        subject: existing.subject || session.topic, // best effort subject
-      });
+      const existing = topicWorkload.get(session.topic) || { studyMinutes: 0, revisionMinutes: 0, subject: '' };
+
+      if (session.isRevision) {
+        existing.revisionMinutes += unfinishedMinutes;
+      } else {
+        existing.studyMinutes += unfinishedMinutes;
+      }
+      existing.subject = existing.subject || session.topic; // best effort subject
+
+      topicWorkload.set(session.topic, existing);
       remainingMinutes += unfinishedMinutes;
     }
 
@@ -361,13 +331,29 @@ export class StudyPlanService {
 
     // Build topic estimates from remaining workload
     const rescheduledTopics: TopicEstimate[] = [];
-    for (const [topicName, data] of topicRemainingMinutes) {
-      rescheduledTopics.push({
-        name: topicName,
-        subject: data.subject,
-        estimatedHours: data.minutes / 60,
-        difficulty: 'medium', // default for rescheduling
-      });
+
+    for (const [topicName, data] of topicWorkload) {
+      // 1. Core study workload (generates new revisions)
+      if (data.studyMinutes > 0) {
+        rescheduledTopics.push({
+          name: topicName,
+          subject: data.subject,
+          estimatedHours: data.studyMinutes / 60,
+          difficulty: 'medium', // difficulty lost, default to medium
+          generateRevisions: true,
+        });
+      }
+
+      // 2. Revision catch-up workload (does NOT generate new revisions)
+      if (data.revisionMinutes > 0) {
+        rescheduledTopics.push({
+          name: `${topicName} (Revision)`,
+          subject: data.subject,
+          estimatedHours: data.revisionMinutes / 60,
+          difficulty: 'medium',
+          generateRevisions: false,
+        });
+      }
     }
 
     // Generate new schedule from tomorrow onwards
@@ -389,19 +375,19 @@ export class StudyPlanService {
         where: {
           studyPlanId,
           date: { gte: tomorrowMidnight },
-        } as any, // Cast because old types don't support date queries this way correctly
+        },
       });
 
       // Insert new sessions
       const sessionData = this.scheduleResultToSessions(studyPlanId, scheduleResult);
       if (sessionData.length > 0) {
-        await tx.studySession.createMany({ data: sessionData as any });
+        await tx.studySession.createMany({ data: sessionData });
       }
 
       // Update the plan snapshot
       await tx.studyPlan.update({
         where: { id: studyPlanId },
-        data: { plan: this.scheduleResultToJson(scheduleResult) } as any,
+        data: { plan: this.scheduleResultToJson(scheduleResult) },
       });
     });
 
@@ -418,7 +404,7 @@ export class StudyPlanService {
     const plan = await this.prisma.studyPlan.findUnique({
       where: { id: studyPlanId },
       include: { sessions: true },
-    }) as unknown as ExtendedStudyPlan | null;
+    });
 
     if (!plan) throw new Error(`Study plan not found: ${studyPlanId}`);
 
@@ -434,9 +420,7 @@ export class StudyPlanService {
     let totalPlannedMinutes = 0;
     let totalCompletedMinutes = 0;
 
-    // Use any because TypeScript thinks plan.sessions is old StudySession[]
-    // but at runtime it has plannedMinutes, completedMinutes, status, etc.
-    for (const session of (plan.sessions as unknown as ExtendedStudySession[])) {
+    for (const session of plan.sessions) {
       totalPlannedMinutes += session.plannedMinutes;
 
       switch (session.status) {
