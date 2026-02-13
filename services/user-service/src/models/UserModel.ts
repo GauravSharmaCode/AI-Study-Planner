@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { logWithMeta } from "@gauravsharmacode/neat-logger";
 import type {
   CreateUserRequest,
@@ -16,7 +17,7 @@ import { prisma } from "../config/database";
  * @param {object} user - The user entity from the database.
  * @returns {UserResponse} - The user response suitable for the API.
  */
-const convertToUserResponse = (user: any): UserResponse => {
+const convertToUserResponse = (user: User): UserResponse => {
   const { ...userWithoutDeleted } = user;
   return {
     ...userWithoutDeleted,
@@ -140,7 +141,7 @@ class UserModel {
         extra: { userId },
       });
 
-      const whereClause: any = { id: userId };
+      const whereClause: Prisma.UserWhereInput = { id: userId };
       if (!includeDeleted) {
         whereClause.deletedAt = null;
       }
@@ -194,7 +195,7 @@ class UserModel {
         extra: { email },
       });
 
-      const whereClause: any = { email };
+      const whereClause: Prisma.UserWhereInput = { email };
       if (!includeDeleted) {
         whereClause.deletedAt = null;
       }
@@ -316,7 +317,7 @@ class UserModel {
       });
 
       // Build where clause
-      const whereClause: any = {};
+      const whereClause: Prisma.UserWhereInput = {};
 
       if (!includeDeleted) {
         whereClause.deletedAt = null;
@@ -344,12 +345,7 @@ class UserModel {
       });
 
       // Convert dates to strings for response
-      const userResponses: UserResponse[] = users.map((user: any) => ({
-        ...user,
-        lastLoginAt: user.lastLoginAt?.toISOString(),
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
-      }));
+      const userResponses: UserResponse[] = users.map((user) => convertToUserResponse(user as User));
 
       const totalPages = Math.ceil(total / limit);
       const hasNext = page < totalPages;

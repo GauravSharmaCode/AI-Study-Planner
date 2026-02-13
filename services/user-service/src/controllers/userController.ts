@@ -288,7 +288,7 @@ const updateMe = catchAsync(
 
     Object.keys(req.body).forEach((el) => {
       if (allowedFields.includes(el)) {
-        (filteredBody as any)[el] = req.body[el];
+        (filteredBody as Record<string, unknown>)[el] = req.body[el];
       }
     });
 

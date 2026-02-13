@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import { body, param, query, validationResult, ValidationError } from "express-validator";
 import { AppError } from "./errorHandler";
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { body, param, query, validationResult } = require("express-validator");
 
 /**
  * Handles validation errors by calling next() with an AppError
@@ -19,7 +17,7 @@ const handleValidationErrors = (
 ): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const errorMessages = errors.array().map((error: any) => error.msg);
+    const errorMessages = errors.array().map((error: ValidationError) => error.msg);
     return next(new AppError(errorMessages.join(". "), 400));
   }
   next();
@@ -101,7 +99,7 @@ const userValidation = {
       .withMessage(
         "New password must contain at least one lowercase letter, one uppercase letter, and one number"
       ),
-    body("confirmPassword").custom((value: string, { req }: any) => {
+    body("confirmPassword").custom((value: string, { req }: { req: Request }) => {
       if (value !== req.body.newPassword) {
         throw new Error("Password confirmation does not match password");
       }

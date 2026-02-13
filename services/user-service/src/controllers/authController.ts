@@ -4,6 +4,7 @@ import UserService from "../services/UserService";
 import { signToken } from "../utils/auth";
 import { AppError } from "../middleware/errorHandler";
 import { AuthenticatedRequest } from "../middleware/auth";
+import type { UserResponse } from "../interfaces";
 
 /**
  * A higher-order function that wraps an asynchronous route handler,
@@ -15,7 +16,7 @@ import { AuthenticatedRequest } from "../middleware/auth";
  * function and catches any errors, passing them to the next middleware.
  */
 const catchAsync = (
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     fn(req, res, next).catch(next);
@@ -32,15 +33,20 @@ const catchAsync = (
  * @param {string} message - Success message to include in response.
  */
 const createSendToken = (
-  user: any,
+  user: UserResponse,
   statusCode: number,
   res: Response,
   message: string = "Authentication successful"
 ): void => {
   const token = signToken(user.id);
 
-  // Remove password from output
-  user.password = undefined;
+  // Ensure password is not included in the response
+  // Although UserResponse interface doesn't include password, the runtime object might
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((user as any).password) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (user as any).password = undefined;
+  }
 
   res.status(statusCode).json({
     status: "success",

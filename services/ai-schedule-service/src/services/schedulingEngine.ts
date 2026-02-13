@@ -324,7 +324,7 @@ export function insertRevisionSessions(
     );
 
     for (const interval of REVISION_INTERVALS) {
-      let inserted = false;
+      // let inserted = false; // Unused variable
 
       // Try target day and a few days forward
       for (let offset = 0; offset <= REVISION_LOOKAHEAD_DAYS; offset++) {
@@ -334,6 +334,8 @@ export function insertRevisionSessions(
 
         const dayPlan = result[revDay];
 
+        if (!dayPlan) continue;
+
         // Check capacity
         if (dayPlan.totalMinutes + revisionMinutes <= dailyAvailableMinutes) {
           // Found a slot!
@@ -342,10 +344,16 @@ export function insertRevisionSessions(
           let startMinute: number;
           if (dayPlan.blocks.length > 0) {
             const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
-            startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
+            if (lastBlock) {
+              startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
+            } else {
+              // Should be covered by blocks.length > 0 check, but strict null check might complain
+              const [h, m] = preferredStartTime.split(':').map(Number);
+              startMinute = (h ?? 0) * 60 + (m ?? 0);
+            }
           } else {
             const [h, m] = preferredStartTime.split(':').map(Number);
-            startMinute = h * 60 + m;
+            startMinute = (h ?? 0) * 60 + (m ?? 0);
           }
 
           dayPlan.blocks.push({
@@ -357,7 +365,7 @@ export function insertRevisionSessions(
             isRevision: true,
           });
           dayPlan.totalMinutes += revisionMinutes;
-          inserted = true;
+          // inserted = true; // Unused variable
           break; // Stop looking for a slot for this interval
         }
       }

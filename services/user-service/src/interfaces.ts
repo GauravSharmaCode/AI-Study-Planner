@@ -4,18 +4,18 @@
 export interface User {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
-  phone?: string;
-  password?: string; // Include password for internal operations
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  password?: string | null; // Include password for internal operations
   isActive: boolean;
   isVerified: boolean;
   role: string;
-  lastLoginAt?: Date;
+  lastLoginAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface CreateUserRequest {
@@ -159,7 +159,7 @@ export interface AppConfig {
 export interface PrismaQueryParams {
   model?: string;
   action: string;
-  args?: any;
+  args?: unknown;
   dataPath?: string[];
   runInTransaction?: boolean;
 }

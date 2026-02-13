@@ -1,4 +1,4 @@
-import { PrismaClient, StudySession, StudyPlan } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { AIAPIClient } from './ai-api-client';
 import { createLogger } from "../utils/logger";
 import { prisma } from '../config/database';
@@ -105,7 +105,7 @@ export class StudyPlanService {
       const plan = await tx.studyPlan.create({
         data: {
           userId: data.userId,
-          examName: data.examName,
+          examName: data.examName ?? null,
           subjects: data.subjects,
           availableHoursPerDay: data.availableHoursPerDay,
           preferredStartTime,

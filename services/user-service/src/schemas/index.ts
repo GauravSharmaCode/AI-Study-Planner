@@ -6,12 +6,12 @@ import { z } from 'zod';
 
 export const ApiResponseSchema = z.object({
   success: z.boolean(),
-  data: z.any().optional(),
+  data: z.unknown().optional(),
   error: z.string().optional(),
   message: z.string().optional(),
   timestamp: z.string()
 });
-export type ApiResponse<T = any> = z.infer<typeof ApiResponseSchema> & { data?: T };
+export type ApiResponse<T = unknown> = z.infer<typeof ApiResponseSchema> & { data?: T };
 
 export const PaginationMetaSchema = z.object({
   page: z.number(),
@@ -24,7 +24,7 @@ export type PaginationMeta = z.infer<typeof PaginationMetaSchema>;
 export const PaginatedResponseSchema = ApiResponseSchema.extend({
   meta: PaginationMetaSchema
 });
-export type PaginatedResponse<T = any> = z.infer<typeof PaginatedResponseSchema> & { data?: T };
+export type PaginatedResponse<T = unknown> = z.infer<typeof PaginatedResponseSchema> & { data?: T };
 
 // ===================================================================
 // INTER-SERVICE COMMUNICATION
@@ -33,27 +33,27 @@ export type PaginatedResponse<T = any> = z.infer<typeof PaginatedResponseSchema>
 export const ServiceRequestSchema = z.object({
   serviceId: z.string(),
   action: z.string(),
-  payload: z.any(),
+  payload: z.unknown(),
   userId: z.string().optional(),
   requestId: z.string(),
   timestamp: z.string()
 });
-export type ServiceRequest<T = any> = z.infer<typeof ServiceRequestSchema> & { payload: T };
+export type ServiceRequest<T = unknown> = z.infer<typeof ServiceRequestSchema> & { payload: T };
 
 export const ServiceResponseSchema = z.object({
   success: z.boolean(),
-  data: z.any().optional(),
+  data: z.unknown().optional(),
   error: z.string().optional(),
   requestId: z.string(),
   timestamp: z.string(),
   serviceId: z.string()
 });
-export type ServiceResponse<T = any> = z.infer<typeof ServiceResponseSchema> & { data?: T };
+export type ServiceResponse<T = unknown> = z.infer<typeof ServiceResponseSchema> & { data?: T };
 
 export const ServiceEventSchema = z.object({
   eventType: z.string(),
   serviceId: z.string(),
-  payload: z.any(),
+  payload: z.unknown(),
   timestamp: z.string(),
   userId: z.string().optional()
 });
@@ -108,7 +108,7 @@ export const ChangePasswordBodySchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(8, 'New password must be at least 8 characters long'),
   confirmPassword: z.string()
-}).refine((data: any) => data.newPassword === data.confirmPassword, {
+}).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });

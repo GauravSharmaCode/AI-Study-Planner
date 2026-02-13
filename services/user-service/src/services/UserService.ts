@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { logWithMeta } from "@gauravsharmacode/neat-logger";
 import { hashPassword, correctPassword } from "../utils/auth";
 import UserModel from "../models/UserModel";
@@ -64,9 +65,10 @@ class UserService {
         hashedPassword = await hashPassword(userData.password);
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const userCreateData: any = {
         email: userData.email,
-        role: "user" as const,
+        role: "user",
         isActive: true,
         isVerified: false,
       };

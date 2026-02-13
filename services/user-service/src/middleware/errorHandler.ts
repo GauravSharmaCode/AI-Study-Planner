@@ -4,7 +4,7 @@ import { logWithMeta } from "@gauravsharmacode/neat-logger";
 // Extend Error interface for database errors
 interface DatabaseError extends Error {
   path?: string;
-  value?: any;
+  value?: unknown;
   code?: number;
   errmsg?: string;
   errors?: Record<string, { message: string }>;

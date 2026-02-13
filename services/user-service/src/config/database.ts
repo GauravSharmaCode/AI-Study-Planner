@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { logWithMeta } from "@gauravsharmacode/neat-logger";
 import config from "../config";
 import type { PrismaLogEvent } from "../interfaces";
@@ -19,7 +19,10 @@ import type { PrismaLogEvent } from "../interfaces";
  * milliseconds as warnings.
  */
 const queryLogger = () => {
-  return async (params: any, next: (params: any) => Promise<any>) => {
+  return async (
+    params: Prisma.MiddlewareParams,
+    next: (params: Prisma.MiddlewareParams) => Promise<unknown>
+  ) => {
     const before = Date.now();
     const result = await next(params);
     const after = Date.now();
@@ -82,7 +85,7 @@ const prisma = new PrismaClient({
 prisma.$use(queryLogger());
 
 // Event listeners for Prisma logs
-prisma.$on("query", (e: any) => {
+prisma.$on("query", (e: Prisma.QueryEvent) => {
   if (config.database.logQueries) {
     logWithMeta("Raw SQL Query", {
       func: "prismaQuery",
