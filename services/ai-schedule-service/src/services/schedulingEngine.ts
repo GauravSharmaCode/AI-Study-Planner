@@ -13,7 +13,8 @@ export interface TopicEstimate {
   name: string;
   subject: string;
   estimatedHours: number;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: 'easy' | 'medium' | 'hard';
+  generateRevisions?: boolean; // Default true. If false, no revisions generated.
 }
 
 export interface NormalizedTopic extends TopicEstimate {
@@ -291,6 +292,8 @@ export function generateTimeBlocks(
  * Revision duration = 25% of original topic minutes.
  * Sessions are appended to the target day if capacity allows.
  * If revision day exceeds targetCompletionDate, it is skipped.
+ *
+ * UPDATE: If target day is full, search up to REVISION_LOOKAHEAD_DAYS forward.
  */
 export function insertRevisionSessions(
   days: DayPlan[],
@@ -312,6 +315,9 @@ export function insertRevisionSessions(
     const topic = topicMap.get(topicName);
     if (!topic) continue;
 
+    // Respect flag to skip revision generation
+    if (topic.generateRevisions === false) continue;
+
     const revisionMinutes = Math.max(
       MIN_SESSION_MINUTES,
       Math.round(topic.totalMinutes * REVISION_DURATION_RATIO),
@@ -327,7 +333,6 @@ export function insertRevisionSessions(
         if (revDay >= result.length) break; // past exam date, stop trying for this interval
 
         const dayPlan = result[revDay];
-        if (!dayPlan) continue;
 
         // Check capacity
         if (dayPlan.totalMinutes + revisionMinutes <= dailyAvailableMinutes) {
@@ -337,15 +342,10 @@ export function insertRevisionSessions(
           let startMinute: number;
           if (dayPlan.blocks.length > 0) {
             const lastBlock = dayPlan.blocks[dayPlan.blocks.length - 1];
-            if (lastBlock) {
-              startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
-            } else {
-              const [h = 8, m = 0] = preferredStartTime.split(":").map(Number);
-              startMinute = (h || 8) * 60 + (m || 0);
-            }
+            startMinute = hhmmToMinutes(lastBlock.endTime) + BREAK_MINUTES;
           } else {
-            const [h = 8, m = 0] = preferredStartTime.split(":").map(Number);
-            startMinute = (h || 8) * 60 + (m || 0);
+            const [h, m] = preferredStartTime.split(':').map(Number);
+            startMinute = h * 60 + m;
           }
 
           dayPlan.blocks.push({
