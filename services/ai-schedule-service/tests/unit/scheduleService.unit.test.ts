@@ -14,6 +14,10 @@ jest.mock("../../src/utils/logger", () => ({
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),
+    debug: jest.fn(),
+    entry: jest.fn(),
+    exit: jest.fn(),
+    stateChange: jest.fn(),
   })),
 }));
 
@@ -161,7 +165,6 @@ describe("StudyPlanController Unit Tests (Duplicate)", () => {
       expect(mockStudyPlanService.updateSessionStatus).toHaveBeenCalledWith(
         "session-uuid",
         { status: "completed" },
-        "test-correlation-id",
       );
     });
 

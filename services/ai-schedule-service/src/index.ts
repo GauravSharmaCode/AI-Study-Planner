@@ -1,21 +1,26 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import studyPlanRoutes from './routes/studyPlanRoutes';
 import sessionRoutes from './routes/sessionRoutes';
 import { correlationIdMiddleware } from './middleware/correlationId';
+import { contextMiddleware } from './middleware/contextMiddleware';
+import { requestLogger } from './middleware/requestLogger';
 import { createLogger } from './utils/logger';
-
-const logger = createLogger('api-server');
 import config from './config';
 import globalErrorHandler from './middleware/errorHandler';
 import { startRescheduleWorker, stopRescheduleWorker } from './workers/rescheduleWorker';
 import { closeQueue } from './queues/rescheduleQueue';
 
+const logger = createLogger('api-server');
+
 // Initialize Express app
 const app = express();
 const PORT = config.port;
+
+// Context & Correlation ID (First!)
+app.use(contextMiddleware);
+app.use(correlationIdMiddleware);
 
 // Middleware
 app.use(helmet());
@@ -23,27 +28,8 @@ app.use(cors(config.cors));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Correlation ID — must be early in the stack
-app.use(correlationIdMiddleware);
-
-// HTTP logging with correlation ID
-app.use(morgan(':method :url :status :response-time ms', {
-  stream: {
-    write: (message: string) => logger.info(message.trim())
-  }
-}));
-
-// Request logging middleware
-app.use((req, res, next) => {
-  logger.info('Incoming request', {
-    method: req.method,
-    url: req.url,
-    correlationId: req.correlationId,
-    userAgent: req.get('User-Agent'),
-    ip: req.ip
-  });
-  next();
-});
+// Request logging (After body parser)
+app.use(requestLogger);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -68,7 +54,6 @@ app.use('*', (req: Request, res: Response) => {
   logger.warn('Route not found:', {
     url: req.originalUrl,
     method: req.method,
-    correlationId: req.correlationId,
     ip: req.ip
   });
 

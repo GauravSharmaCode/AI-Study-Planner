@@ -1,16 +1,8 @@
-/**
- * JWT Auth Middleware for AI Schedule Service
- *
- * Decodes the Bearer token from the Authorization header,
- * extracts userId, and sets it on `req.userId`.
- *
- * Does NOT call back to user-service for user lookup —
- * trusting the JWT signature is sufficient for this service.
- */
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppError } from './errorHandler';
 import { createLogger } from '../utils/logger';
+import { contextStore } from '../utils/context';
 
 const logger = createLogger('auth-middleware');
 
@@ -49,6 +41,12 @@ export function protect(req: Request, res: Response, next: NextFunction): void {
     }
 
     req.userId = decoded.id;
+
+    // Update context
+    const store = contextStore.getStore();
+    if (store) {
+      store.userId = decoded.id;
+    }
 
     logger.debug('User authenticated', {
       userId: decoded.id,
