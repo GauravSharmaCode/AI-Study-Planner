@@ -5,6 +5,7 @@ import { contextStore } from '../utils/context';
 const CORRELATION_HEADER = 'X-Correlation-ID';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       correlationId: string;
