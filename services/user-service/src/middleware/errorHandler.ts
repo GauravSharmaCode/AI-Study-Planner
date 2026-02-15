@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { logWithMeta } from "@gauravsharmacode/neat-logger";
+import { logger } from "../utils/logger-wrapper";
 
 // Extend Error interface for database errors
 interface DatabaseError extends Error {
@@ -13,32 +13,11 @@ interface DatabaseError extends Error {
   status?: string;
 }
 
-/**
- * Global error handling middleware for Express applications.
- *
- * Handles and formats various error types, including database errors,
- * validation errors, and JWT errors, returning a standardized JSON response.
- * Logs error details with metadata for debugging and auditing purposes.
- *
- * @param err - The error object, possibly extended with database-specific properties.
- * @param req - Express request object.
- * @param res - Express response object.
- * @param next - Express next middleware function.
- */
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly status: string;
   public readonly isOperational: boolean;
 
-
-  /**
-   * Creates an instance of the AppError class.
-   *
-   * @param message - Error message string.
-   * @param statusCode - HTTP status code for the error.
-   * @param isOperational - Optional boolean indicating if the error is operational
-   * (i.e. not a programming error, but a client or network error).
-   */
   constructor(
     message: string,
     statusCode: number,
@@ -85,14 +64,13 @@ const globalErrorHandler = (
   _next: NextFunction // eslint-disable-line @typescript-eslint/no-unused-vars
 ): void => {
   // Log the error for debugging
-  logWithMeta("ERROR 💥", {
-    level: "error",
-    extra: {
-      error: err.message,
-      url: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
-    },
+  logger.error("ERROR 💥", "globalErrorHandler", {
+    error: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    statusCode: err.statusCode || 500
   });
 
   // Set default values

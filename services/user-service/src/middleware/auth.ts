@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { logWithMeta } from '@gauravsharmacode/neat-logger';
+import { logger } from '../utils/logger-wrapper';
 import { AppError } from './errorHandler';
 import { verifyToken, JwtPayload } from '../utils/auth';
 import UserModel from '../models/UserModel';
+import { contextStore } from '../utils/context';
 
 import { UserResponse } from '../interfaces';
 
@@ -24,7 +25,7 @@ const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunct
     }
 
     if (!token) {
-      logWithMeta('No token found in request', { func, level: 'warn', extra: { ip: req.ip } });
+      logger.warn('No token found in request', func, { ip: req.ip });
       return next(
         new AppError('You are not logged in! Please log in to get access.', 401)
       );
@@ -32,20 +33,20 @@ const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunct
 
     // 2) Verification token
     const decoded: JwtPayload = await verifyToken(token);
-    logWithMeta('Token verified', { func, level: 'debug', extra: { userId: decoded.id } });
+    logger.debug('Token verified', func, { userId: decoded.id });
 
     // 3) Check if user still exists
     const currentUser = await UserModel.findById(decoded.id);
 
     if (!currentUser) {
-      logWithMeta('User for token not found', { func, level: 'warn', extra: { userId: decoded.id } });
+      logger.warn('User for token not found', func, { userId: decoded.id });
       return next(
         new AppError('The user belonging to this token does no longer exist.', 401)
       );
     }
 
     if (!currentUser.isActive) {
-      logWithMeta('User account is deactivated', { func, level: 'warn', extra: { userId: currentUser.id } });
+      logger.warn('User account is deactivated', func, { userId: currentUser.id });
       return next(
         new AppError('Your account has been deactivated. Please contact support.', 401)
       );
@@ -53,15 +54,18 @@ const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunct
 
     // Grant access to protected route
     req.user = currentUser;
-    logWithMeta('User authenticated and access granted', { func, level: 'info', extra: { userId: currentUser.id } });
+
+    // Update context
+    const store = contextStore.getStore();
+    if (store) {
+      store.userId = currentUser.id;
+    }
+
+    logger.info('User authenticated and access granted', func, { userId: currentUser.id });
     next();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
-    logWithMeta('Authentication error in protect middleware', { 
-      func, 
-      level: 'error', 
-      extra: { error: errorMessage, ip: req.ip } 
-    });
+    logger.error('Authentication error in protect middleware', func, { error: errorMessage, ip: req.ip });
     next(error);
   }
 };
@@ -75,28 +79,17 @@ const restrictTo = (...roles: string[]) => {
     }
     
     if (!roles.includes(req.user.role)) {
-      logWithMeta('User role restriction failed', { 
-        func, 
-        level: 'warn', 
-        extra: { 
-          userId: req.user.id, 
-          userRole: req.user.role, 
-          requiredRoles: roles 
-        } 
+      logger.warn('User role restriction failed', func, {
+        userId: req.user.id,
+        userRole: req.user.role,
+        requiredRoles: roles
       });
       return next(
         new AppError('You do not have permission to perform this action', 403)
       );
     }
     
-    logWithMeta('User role authorized', { 
-      func, 
-      level: 'debug', 
-      extra: { 
-        userId: req.user.id, 
-        role: req.user.role 
-      } 
-    });
+    logger.debug('User role authorized', func, { userId: req.user.id, role: req.user.role });
     next();
   };
 };
@@ -117,21 +110,20 @@ const optionalAuth = async (req: AuthenticatedRequest, res: Response, next: Next
       const currentUser = await UserModel.findById(decoded.id);
       if (currentUser && currentUser.isActive) {
         req.user = currentUser;
-        logWithMeta('Optional auth: User authenticated', { 
-          func, 
-          level: 'debug', 
-          extra: { userId: currentUser.id } 
-        });
+
+        // Update context
+        const store = contextStore.getStore();
+        if (store) {
+          store.userId = currentUser.id;
+        }
+
+        logger.debug('Optional auth: User authenticated', func, { userId: currentUser.id });
       }
     }
   } catch (error) {
     // Ignore errors, just don't authenticate the user
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logWithMeta('Optional auth: Token invalid, proceeding as guest', { 
-      func, 
-      level: 'debug', 
-      extra: { error: errorMessage } 
-    });
+    logger.debug('Optional auth: Token invalid, proceeding as guest', func, { error: errorMessage });
   }
   next();
 };

@@ -15,10 +15,9 @@ export class StudyPlanController {
   generateStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const { subjects, availableHoursPerDay, targetCompletionDate, examName, preferredStartTime } =
       req.body;
-    const userId = req.userId; // Resolved from JWT
+    const userId = req.userId!; // Resolved from JWT via protect middleware
 
-    logger.info('Generating study plan', {
-      correlationId: req.correlationId,
+    logger.entry('generateStudyPlan', {
       userId,
       subjects,
     });
@@ -32,6 +31,8 @@ export class StudyPlanController {
       preferredStartTime,
     });
 
+    logger.exit('generateStudyPlan', { planId: result.planId });
+
     res.status(201).json({
       status: 'success',
       data: result,
@@ -43,9 +44,13 @@ export class StudyPlanController {
    * Get all plans for the authenticated user
    */
   getAllPlans = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.userId; // Resolved from JWT
+    const userId = req.userId!; // Resolved from JWT
+
+    logger.entry('getAllPlans', { userId });
 
     const plans = await studyPlanService.getAllPlans(userId);
+
+    logger.exit('getAllPlans', { count: plans.length });
 
     res.status(200).json({
       status: 'success',
@@ -60,11 +65,17 @@ export class StudyPlanController {
    */
   getStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+
+    logger.entry('getStudyPlan', { id });
+
     const result = await studyPlanService.getPlanById(id);
 
     if (!result) {
+      logger.warn('Study plan not found', { id });
       throw new AppError("Study plan not found", 404);
     }
+
+    logger.exit('getStudyPlan', { id });
 
     res.status(200).json({
       status: 'success',
@@ -78,7 +89,12 @@ export class StudyPlanController {
    */
   updateStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+
+    logger.entry('updateStudyPlan', { id, updateData: req.body });
+
     const result = await studyPlanService.updatePlanById(id, req.body);
+
+    logger.exit('updateStudyPlan', { id });
 
     res.status(200).json({
       status: 'success',
@@ -92,7 +108,12 @@ export class StudyPlanController {
    */
   deleteStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+
+    logger.entry('deleteStudyPlan', { id });
+
     await studyPlanService.deletePlanById(id);
+
+    logger.exit('deleteStudyPlan', { id });
 
     res.status(204).send();
   });
@@ -103,6 +124,8 @@ export class StudyPlanController {
    */
   reschedule = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+
+    logger.entry('reschedule', { id });
 
     // Verify plan exists
     const plan = await studyPlanService.getPlanById(id);
@@ -116,6 +139,8 @@ export class StudyPlanController {
       triggeredBy: 'manual',
     });
 
+    logger.exit('reschedule', { id, message: 'Job enqueued' });
+
     res.status(202).json({
       status: 'success',
       message: 'Rescheduling job enqueued',
@@ -128,7 +153,12 @@ export class StudyPlanController {
    */
   getAnalytics = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+
+    logger.entry('getAnalytics', { id });
+
     const analytics = await studyPlanService.getCoverageAnalytics(id);
+
+    logger.exit('getAnalytics', { id });
 
     res.status(200).json({
       status: 'success',
@@ -144,11 +174,14 @@ export class StudyPlanController {
     const id = String(req.params.id);
     const { status, completedMinutes, remarks } = req.body;
 
+    logger.entry('updateSessionStatus', { id, status });
+
     await studyPlanService.updateSessionStatus(
       id,
-      { status, completedMinutes, remarks },
-      req.correlationId
+      { status, completedMinutes, remarks }
     );
+
+    logger.exit('updateSessionStatus', { id });
 
     res.status(200).json({
       status: 'success',
@@ -164,7 +197,11 @@ export class StudyPlanController {
     const id = String(req.params.id);
     const { remarks } = req.body;
 
+    logger.entry('updateSessionRemarks', { id });
+
     await studyPlanService.updateSessionRemarks(id, remarks);
+
+    logger.exit('updateSessionRemarks', { id });
 
     res.status(200).json({
       status: 'success',

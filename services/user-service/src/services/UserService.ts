@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client"; // eslint-disable-line @typescript-eslint/no-unused-vars
-import { logWithMeta } from "@gauravsharmacode/neat-logger";
+import { logger } from "../utils/logger-wrapper";
 import { hashPassword, correctPassword } from "../utils/auth";
 import UserModel from "../models/UserModel";
 import type {
@@ -16,29 +16,10 @@ interface ServiceError extends Error {
 }
 
 class UserService {
-  /**
-   * Creates a new user in the database.
-   *
-   * @param userData - An object containing user data, including:
-   *   - email: The user's email address.
-   *   - firstName: The user's first name (optional).
-   *   - lastName: The user's last name (optional).
-   *   - role: The user's role (optional, default is 'user').
-   *   - isActive: Indicates if the user is active (optional, default is true).
-   *   - isVerified: Indicates if the user is verified (optional, default is false).
-   *
-   * @returns A promise that resolves to the created user's response object.
-   *
-   * @throws Will throw a ServiceError if the user could not be created.
-   */
   async createUser(userData: CreateUserRequest): Promise<UserResponse> {
     const func = "createUser";
     try {
-      logWithMeta("Attempting to create a new user", {
-        func,
-        level: "info",
-        extra: { email: userData.email },
-      });
+      logger.entry(func, { email: userData.email });
 
       const checkData: { email?: string; phone?: string } = {
         email: userData.email,
@@ -87,42 +68,23 @@ class UserService {
 
       const newUser: UserResponse = await UserModel.create(userCreateData);
 
-      logWithMeta("User created successfully", {
-        func,
-        level: "info",
-        extra: { userId: newUser.id, email: newUser.email },
-      });
+      logger.exit(func, { userId: newUser.id, email: newUser.email });
       return newUser;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logWithMeta("Error creating user", {
-        func,
-        level: "error",
-        extra: { error: errorMessage, email: userData.email },
-      });
+      logger.error("Error creating user", func, { error: errorMessage, email: userData.email });
       throw error;
     }
   }
 
-  /**
-   * Retrieves a user by their ID.
-   * @param userId - The ID of the user to find.
-   * @param includeDeleted - Whether to include deleted users in the search (default false).
-   * @returns The user object if found, or null otherwise.
-   * @throws Will throw a ServiceError if the user could not be found.
-   */
   async getUserById(
     userId: string,
     includeDeleted: boolean = false
   ): Promise<UserResponse | null> {
     const func = "getUserById";
     try {
-      logWithMeta("Fetching user by ID", {
-        func,
-        level: "info",
-        extra: { userId },
-      });
+      logger.entry(func, { userId, includeDeleted });
 
       const user: UserResponse | null = await UserModel.findById(
         userId,
@@ -135,80 +97,40 @@ class UserService {
         throw error;
       }
 
-      logWithMeta("User fetched successfully", {
-        func,
-        level: "info",
-        extra: { userId },
-      });
+      logger.exit(func, { userId });
       return user;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logWithMeta("Error fetching user", {
-        func,
-        level: "error",
-        extra: { error: errorMessage, userId },
-      });
+      logger.error("Error fetching user", func, { error: errorMessage, userId });
       throw error;
     }
   }
 
-  /**
-   * Retrieves a list of users based on the provided filters.
-   *
-   * @param {UserFilters} filters - Optional filters for finding users, such as search criteria,
-   *   sorting options, and pagination settings.
-   * @returns {Promise<UserListResponse>} - A promise that resolves with a list of users and
-   *   pagination information.
-   * @throws Will throw an error if the user retrieval operation fails.
-   */
   async getAllUsers(filters: UserFilters = {}): Promise<UserListResponse> {
     const func = "getAllUsers";
     try {
-      logWithMeta("Fetching all users with filters", {
-        func,
-        level: "info",
-        extra: { filters },
-      });
+      logger.entry(func, { filters });
 
       const result: UserListResponse = await UserModel.findMany(filters);
 
-      logWithMeta("Users fetched successfully", {
-        func,
-        level: "info",
-        extra: { count: result.users.length, total: result.pagination.total },
-      });
+      logger.exit(func, { count: result.users.length, total: result.pagination.total });
       return result;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logWithMeta("Error fetching users", {
-        func,
-        level: "error",
-        extra: { error: errorMessage },
-      });
+      logger.error("Error fetching users", func, { error: errorMessage });
       throw error;
     }
   }
-  /**
-   * Updates a user's information.
-   *
-   * @param userId - The ID of the user to update.
-   * @param updateData - An object containing the data to update the user with.
-   * @returns A promise that resolves to the updated user object, or null if no user was found.
-   * @throws Will throw an error if the user is not found or if the update operation fails.
-   */
+
   async updateUser(
     userId: string,
     updateData: UpdateUserRequest
   ): Promise<UserResponse | null> {
     const func = "updateUser";
     try {
-      logWithMeta("Updating user", {
-        func,
-        level: "info",
-        extra: { userId, updateData },
-      });
+      logger.entry(func, { userId, updateData });
 
       const updatedUser: UserResponse | null = await UserModel.update(
         userId,
@@ -221,49 +143,23 @@ class UserService {
         throw error;
       }
 
-      logWithMeta("User updated successfully", {
-        func,
-        level: "info",
-        extra: { userId },
-      });
+      logger.exit(func, { userId });
       return updatedUser;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logWithMeta("Error updating user", {
-        func,
-        level: "error",
-        extra: { error: errorMessage, userId },
-      });
+      logger.error("Error updating user", func, { error: errorMessage, userId });
       throw error;
     }
   }
 
-  /**
-   * Authenticates a user by verifying their email and password.
-   *
-   * This method retrieves the user associated with the specified email address,
-   * checks if the account is active, and validates the provided password against
-   * the stored hash. If authentication is successful, it updates the user's last
-   * login timestamp and returns the user's information without the password.
-   *
-   * @param email - The email address of the user to authenticate.
-   * @param inputPassword - The password of the user to authenticate.
-   * @returns A promise that resolves with the authenticated user's information, excluding the password.
-   * @throws Throws an error if the user is not found, the account is deactivated,
-   *         the password is incorrect, or if an error occurs during the authentication process.
-   */
   async authenticateUser(
     email: string,
     inputPassword: string
   ): Promise<UserResponse> {
     const func = "authenticateUser";
     try {
-      logWithMeta("Authenticating user", {
-        func,
-        level: "info",
-        extra: { email },
-      });
+      logger.entry(func, { email });
 
       const user: User | null = await UserModel.findByEmail(email, true);
       if (!user) {
@@ -302,56 +198,30 @@ class UserService {
         updatedAt: userFields.updatedAt.toISOString(),
       } as UserResponse;
 
-      logWithMeta("User authenticated successfully", {
-        func,
-        level: "info",
-        extra: { email, userId: user.id },
-      });
+      logger.exit(func, { email, userId: user.id });
       return userResponse;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logWithMeta("Error authenticating user", {
-        func,
-        level: "error",
-        extra: { error: errorMessage, email },
-      });
+      logger.error("Error authenticating user", func, { error: errorMessage, email });
       throw error;
     }
   }
 
-  /**
-   * Soft deletes a user by setting the deletedAt timestamp and deactivating the user.
-   * @param userId - The ID of the user to soft delete.
-   * @returns The updated user object with dates converted to strings, or null if no user was found.
-   * @throws Will throw an error if the operation fails.
-   */
   async softDeleteUser(userId: string): Promise<UserResponse | null> {
     const func = "softDeleteUser";
     try {
-      logWithMeta("Soft deleting user", {
-        func,
-        level: "info",
-        extra: { userId },
-      });
+      logger.entry(func, { userId });
 
       const updatedUser: UserResponse | null =
         await UserModel.softDelete(userId);
 
-      logWithMeta("User soft deleted successfully", {
-        func,
-        level: "info",
-        extra: { userId },
-      });
+      logger.exit(func, { userId });
       return updatedUser;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logWithMeta("Error soft deleting user", {
-        func,
-        level: "error",
-        extra: { error: errorMessage, userId },
-      });
+      logger.error("Error soft deleting user", func, { error: errorMessage, userId });
       throw error;
     }
   }

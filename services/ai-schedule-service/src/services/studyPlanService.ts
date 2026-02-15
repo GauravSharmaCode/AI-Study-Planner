@@ -9,6 +9,7 @@ import {
   TopicEstimate,
 } from './schedulingEngine';
 import { enqueueReschedule } from '../queues/rescheduleQueue';
+import { getCorrelationId } from "../utils/context";
 
 const logger = createLogger('study-plan-service');
 
@@ -47,34 +48,27 @@ export interface CoverageAnalytics {
 
 export class StudyPlanService {
   private prisma: PrismaClient;
-  private logger: any;
   private aiClient: AIAPIClient;
 
   constructor() {
     this.prisma = prisma;
-    this.logger = logger;
     this.aiClient = new AIAPIClient(process.env.GOOGLE_GENAI_API_KEY || '');
   }
 
   // ─── CREATE PLAN ────────────────────────────────────────────────
 
-  /**
-   * Create a new study plan using AI topic estimation + deterministic engine.
-   *
-   * Flow:
-   * 1. Validate input
-   * 2. AI estimates topics (effort + difficulty)
-   * 3. Deterministic engine generates schedule
-   * 4. Persist StudyPlan + StudySessions
-   */
   async createPlan(data: CreatePlanRequest): Promise<{ planId: string; plan: any; metadata: any }> {
+    const func = "createPlan";
+    logger.entry(func, { userId: data.userId, subjects: data.subjects });
+
     this.validateCreatePlanInput(data);
 
     const preferredStartTime = data.preferredStartTime || '08:00';
     const targetDate = new Date(data.targetCompletionDate);
 
     // Step 1: AI estimates topics
-    this.logger.info('Requesting AI topic estimation', {
+    logger.info('Requesting AI topic estimation', {
+      func,
       subjects: data.subjects,
       examName: data.examName,
     });
@@ -84,7 +78,8 @@ export class StudyPlanService {
       data.examName
     );
 
-    this.logger.info('AI topic estimation complete', {
+    logger.info('AI topic estimation complete', {
+      func,
       topicCount: topicEstimates.length,
     });
 
@@ -124,11 +119,7 @@ export class StudyPlanService {
       return plan;
     });
 
-    this.logger.info('Study plan created', {
-      planId: studyPlan.id,
-      sessionCount: scheduleResult.metadata.totalSessionCount,
-      revisionCount: scheduleResult.metadata.totalRevisionCount,
-    });
+    logger.stateChange(func, "StudyPlan Created", null, { planId: studyPlan.id });
 
     return {
       planId: studyPlan.id,
@@ -140,6 +131,7 @@ export class StudyPlanService {
   // ─── GET PLAN ───────────────────────────────────────────────────
 
   async getPlanById(id: string) {
+    logger.entry("getPlanById", { id });
     const studyPlan = await this.prisma.studyPlan.findUnique({
       where: { id },
       include: { sessions: { orderBy: { date: 'asc' } } },
@@ -147,6 +139,7 @@ export class StudyPlanService {
 
     if (!studyPlan) return null;
 
+    logger.exit("getPlanById", { id });
     return {
       planId: studyPlan.id,
       userId: studyPlan.userId,
@@ -166,6 +159,7 @@ export class StudyPlanService {
   // ─── GET ALL PLANS ──────────────────────────────────────────────
 
   async getAllPlans(userId: string) {
+    logger.entry("getAllPlans", { userId });
     return this.prisma.studyPlan.findMany({
       where: { userId, isActive: true },
       include: { sessions: { orderBy: { date: 'asc' } } },
@@ -176,6 +170,9 @@ export class StudyPlanService {
   // ─── UPDATE PLAN ────────────────────────────────────────────────
 
   async updatePlanById(id: string, updateData: Partial<CreatePlanRequest>) {
+    const func = "updatePlanById";
+    logger.entry(func, { id, updateData });
+
     const studyPlan = await this.prisma.studyPlan.update({
       where: { id },
       data: {
@@ -189,40 +186,49 @@ export class StudyPlanService {
       },
     });
 
+    logger.exit(func, { id });
     return studyPlan;
   }
 
   // ─── DELETE PLAN ────────────────────────────────────────────────
 
   async deletePlanById(id: string): Promise<boolean> {
+    const func = "deletePlanById";
+    logger.entry(func, { id });
+
     await this.prisma.$transaction(async (tx) => {
       await tx.studySession.deleteMany({ where: { studyPlanId: id } });
       await tx.studyPlan.delete({ where: { id } });
     });
+
+    logger.exit(func, { id });
     return true;
   }
 
   // ─── SOFT DELETE (deactivate) ───────────────────────────────────
 
   async deactivatePlan(id: string): Promise<void> {
+    const func = "deactivatePlan";
+    logger.entry(func, { id });
+
     await this.prisma.studyPlan.update({
       where: { id },
       data: { isActive: false },
     });
+
+    logger.exit(func, { id });
   }
 
   // ─── UPDATE SESSION STATUS ──────────────────────────────────────
 
-  /**
-   * Update a session's status.
-   * If status becomes 'skipped' or 'partial', enqueue a reschedule job.
-   */
   async updateSessionStatus(
     sessionId: string,
-    update: UpdateSessionStatusRequest,
-    correlationId?: string
+    update: UpdateSessionStatusRequest
   ): Promise<void> {
+    const func = "updateSessionStatus";
     const { status, completedMinutes, remarks } = update;
+
+    logger.entry(func, { sessionId, status });
 
     if (!['pending', 'completed', 'skipped', 'partial'].includes(status)) {
       throw new Error('Invalid status. Must be: pending, completed, skipped, or partial');
@@ -239,7 +245,8 @@ export class StudyPlanService {
 
     // Trigger async rescheduling for skipped or partial sessions
     if (status === 'skipped' || status === 'partial') {
-      this.logger.info('Session status triggers rescheduling', {
+      logger.info('Session status triggers rescheduling', {
+        func,
         sessionId,
         status,
         studyPlanId: session.studyPlanId,
@@ -247,33 +254,34 @@ export class StudyPlanService {
 
       await enqueueReschedule({
         studyPlanId: session.studyPlanId,
-        correlationId: correlationId || 'unknown',
+        correlationId: getCorrelationId() || 'unknown',
         triggeredBy: 'session_status_change',
       });
     }
+
+    logger.exit(func, { sessionId });
   }
 
   // ─── UPDATE SESSION REMARKS ─────────────────────────────────────
 
   async updateSessionRemarks(sessionId: string, remarks: string): Promise<void> {
+    const func = "updateSessionRemarks";
+    logger.entry(func, { sessionId });
+
     await this.prisma.studySession.update({
       where: { id: sessionId },
       data: { remarks },
     });
+
+    logger.exit(func, { sessionId });
   }
 
   // ─── RESCHEDULE ─────────────────────────────────────────────────
 
-  /**
-   * Adaptive rescheduling: delete future sessions, recompute and insert.
-   *
-   * Rules (from REQUIREMENTS.md):
-   * - Past sessions are NEVER modified (immutable history)
-   * - Future schedule is fully regenerated
-   * - Exam date remains fixed
-   * - Remaining workload is evenly distributed
-   */
   async reschedule(studyPlanId: string): Promise<void> {
+    const func = "reschedule";
+    logger.entry(func, { studyPlanId });
+
     const plan = await this.prisma.studyPlan.findUnique({
       where: { id: studyPlanId },
       include: { sessions: true },
@@ -290,14 +298,12 @@ export class StudyPlanService {
     // Compute remaining workload from incomplete sessions
     let remainingMinutes = 0;
 
-    // Collect topics that still need work, separated by type
-    // Map<topicName, { studyMinutes, revisionMinutes, subject }>
+    // Collect topics that still need work
     const topicWorkload = new Map<string, { studyMinutes: number; revisionMinutes: number; subject: string }>();
 
     for (const session of plan.sessions) {
       if (session.status === 'completed') continue;
 
-      // For skipped/pending/partial sessions
       let unfinishedMinutes: number;
       if (session.status === 'partial' && session.completedMinutes != null) {
         unfinishedMinutes = session.plannedMinutes - session.completedMinutes;
@@ -318,33 +324,31 @@ export class StudyPlanService {
       } else {
         existing.studyMinutes += unfinishedMinutes;
       }
-      existing.subject = existing.subject || session.topic; // best effort subject
+      existing.subject = existing.subject || session.topic;
 
       topicWorkload.set(session.topic, existing);
       remainingMinutes += unfinishedMinutes;
     }
 
     if (remainingMinutes <= 0) {
-      this.logger.info('No remaining workload to reschedule', { studyPlanId });
+      logger.info('No remaining workload to reschedule', { func, studyPlanId });
       return;
     }
 
-    // Build topic estimates from remaining workload
+    // Build topic estimates
     const rescheduledTopics: TopicEstimate[] = [];
 
     for (const [topicName, data] of topicWorkload) {
-      // 1. Core study workload (generates new revisions)
       if (data.studyMinutes > 0) {
         rescheduledTopics.push({
           name: topicName,
           subject: data.subject,
           estimatedHours: data.studyMinutes / 60,
-          difficulty: 'medium', // difficulty lost, default to medium
+          difficulty: 'medium',
           generateRevisions: true,
         });
       }
 
-      // 2. Revision catch-up workload (does NOT generate new revisions)
       if (data.revisionMinutes > 0) {
         rescheduledTopics.push({
           name: `${topicName} (Revision)`,
@@ -356,7 +360,6 @@ export class StudyPlanService {
       }
     }
 
-    // Generate new schedule from tomorrow onwards
     const scheduleResult = generateSchedule(
       {
         targetCompletionDate: plan.targetCompletionDate,
@@ -368,9 +371,8 @@ export class StudyPlanService {
       tomorrowMidnight
     );
 
-    // Transaction: delete future sessions, insert new ones
+    // Transaction
     await this.prisma.$transaction(async (tx) => {
-      // Delete all future sessions
       await tx.studySession.deleteMany({
         where: {
           studyPlanId,
@@ -378,22 +380,19 @@ export class StudyPlanService {
         },
       });
 
-      // Insert new sessions
       const sessionData = this.scheduleResultToSessions(studyPlanId, scheduleResult);
       if (sessionData.length > 0) {
         await tx.studySession.createMany({ data: sessionData });
       }
 
-      // Update the plan snapshot
       await tx.studyPlan.update({
         where: { id: studyPlanId },
         data: { plan: this.scheduleResultToJson(scheduleResult) },
       });
     });
 
-    this.logger.info('Rescheduling complete', {
+    logger.stateChange(func, "Schedule Regenerated", null, {
       studyPlanId,
-      remainingMinutes,
       newSessionCount: scheduleResult.metadata.totalSessionCount,
     });
   }
@@ -401,6 +400,9 @@ export class StudyPlanService {
   // ─── COVERAGE ANALYTICS ─────────────────────────────────────────
 
   async getCoverageAnalytics(studyPlanId: string): Promise<CoverageAnalytics> {
+    const func = "getCoverageAnalytics";
+    logger.entry(func, { studyPlanId });
+
     const plan = await this.prisma.studyPlan.findUnique({
       where: { id: studyPlanId },
       include: { sessions: true },
@@ -449,7 +451,7 @@ export class StudyPlanService {
     const remainingCapacity = daysRemaining * plan.availableHoursPerDay * 60;
     const isAtRisk = remainingWorkloadMinutes > remainingCapacity;
 
-    return {
+    const result = {
       totalSessions: plan.sessions.length,
       completedSessions,
       skippedSessions,
@@ -462,6 +464,9 @@ export class StudyPlanService {
       remainingWorkloadMinutes,
       isAtRisk,
     };
+
+    logger.exit(func, { studyPlanId, completionPercentage });
+    return result;
   }
 
   // ─── PRIVATE HELPERS ────────────────────────────────────────────
