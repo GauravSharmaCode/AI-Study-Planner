@@ -47,17 +47,16 @@ The gateway routes requests to:
 - `GET /nginx-health` - Internal nginx status (port 8090, internal only)
 
 ### API Endpoints (Proxied)
+
+#### User Service
 - `POST /api/v1/auth/register` - User registration
 - `POST /api/v1/auth/login` - User login
 - `GET /api/v1/users/me` - Get current user
+
+#### AI Schedule Service
 - `POST /api/v1/plans/generate` - Generate AI study plan
 - `GET /api/v1/plans/:id` - Get study plan
 - `PATCH /api/v1/sessions/:id/status` - Update session status
-
-### Legacy Redirects
-- `/api/auth/*` → `/api/v1/auth/*` (301 redirect)
-- `/api/users/*` → `/api/v1/users/*` (301 redirect)
-- `/api/plans/*` → `/api/v1/plans/*` (301 redirect)
 
 ## Usage
 
@@ -96,7 +95,7 @@ sudo nginx -s reload
 
 ## Environment Variables
 
-The gateway expects these upstream services to be available:
+The gateway expects these upstream services to be available via Docker networking:
 
 - `user-service:3001` - User authentication and management service
 - `ai-schedule-service:3002` - AI-powered scheduling service
@@ -218,38 +217,6 @@ curl http://localhost:8080/api/v1/health/services
 # Test specific endpoint
 curl -v http://localhost:8080/api/v1/auth/health
 ```
-
-## Development
-
-### Testing Configuration
-
-```bash
-# Validate nginx config
-nginx -t -c nginx.conf
-
-# Test with docker
-docker build -t test-gateway .
-docker run --rm -p 8080:8080 test-gateway
-```
-
-### Customization
-
-Edit `nginx.conf` to:
-- Add new upstream services
-- Modify rate limits
-- Adjust timeouts
-- Add custom headers
-
-## Comparison with Express.js Gateway
-
-| Feature | Express.js | Nginx |
-|---------|------------|-------|
-| Performance | ~10k req/s | ~50k+ req/s |
-| Memory Usage | ~50MB | ~10MB |
-| Configuration | JavaScript | Config file |
-| Rate Limiting | Middleware | Built-in |
-| Load Balancing | Custom | Built-in |
-| SSL Termination | Additional setup | Built-in |
 
 ## Future Enhancements
 
