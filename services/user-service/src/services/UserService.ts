@@ -15,7 +15,22 @@ interface ServiceError extends Error {
   statusCode?: number;
 }
 
+/**
+ * Service class for handling user-related business logic.
+ *
+ * Handles creation, retrieval, updates, authentication, and deletion of users.
+ */
 class UserService {
+  /**
+   * Creates a new user.
+   *
+   * Checks for existing user by email or phone.
+   * Hashes the password if provided.
+   *
+   * @param {CreateUserRequest} userData - The user creation data.
+   * @returns {Promise<UserResponse>} The created user.
+   * @throws {ServiceError} If user already exists (409) or other errors.
+   */
   async createUser(userData: CreateUserRequest): Promise<UserResponse> {
     const func = "createUser";
     try {
@@ -78,6 +93,14 @@ class UserService {
     }
   }
 
+  /**
+   * Retrieves a user by their ID.
+   *
+   * @param {string} userId - The user ID.
+   * @param {boolean} [includeDeleted=false] - Whether to include soft-deleted users.
+   * @returns {Promise<UserResponse | null>} The user object.
+   * @throws {ServiceError} If user is not found (404).
+   */
   async getUserById(
     userId: string,
     includeDeleted: boolean = false
@@ -107,6 +130,12 @@ class UserService {
     }
   }
 
+  /**
+   * Retrieves a list of users based on filters.
+   *
+   * @param {UserFilters} [filters={}] - Filters for pagination, search, etc.
+   * @returns {Promise<UserListResponse>} List of users and pagination metadata.
+   */
   async getAllUsers(filters: UserFilters = {}): Promise<UserListResponse> {
     const func = "getAllUsers";
     try {
@@ -124,6 +153,14 @@ class UserService {
     }
   }
 
+  /**
+   * Updates an existing user.
+   *
+   * @param {string} userId - The user ID.
+   * @param {UpdateUserRequest} updateData - Data to update.
+   * @returns {Promise<UserResponse | null>} The updated user.
+   * @throws {ServiceError} If user not found (404).
+   */
   async updateUser(
     userId: string,
     updateData: UpdateUserRequest
@@ -153,6 +190,14 @@ class UserService {
     }
   }
 
+  /**
+   * Authenticates a user with email and password.
+   *
+   * @param {string} email - User email.
+   * @param {string} inputPassword - User password.
+   * @returns {Promise<UserResponse>} The authenticated user (without password).
+   * @throws {ServiceError} If credentials invalid (401) or account inactive.
+   */
   async authenticateUser(
     email: string,
     inputPassword: string
@@ -208,6 +253,12 @@ class UserService {
     }
   }
 
+  /**
+   * Soft deletes a user (sets isActive to false and adds deletedAt timestamp).
+   *
+   * @param {string} userId - The user ID.
+   * @returns {Promise<UserResponse | null>} The deleted user record.
+   */
   async softDeleteUser(userId: string): Promise<UserResponse | null> {
     const func = "softDeleteUser";
     try {
