@@ -14,6 +14,14 @@ const RETRY_CONFIG = {
 
 /**
  * Helper function to implement retry logic with exponential backoff
+ *
+ * @template T
+ * @param {() => Promise<T>} fn - The async function to retry
+ * @param {string} operation - Name of the operation for logging
+ * @param {any} logger - Logger instance
+ * @param {number} [retries=RETRY_CONFIG.maxRetries] - Maximum number of retries
+ * @returns {Promise<T>} The result of the function call
+ * @throws {Error} If all retries fail
  */
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
@@ -67,6 +75,12 @@ export class AIAPIClient {
   private readonly ai: GoogleGenAI;
   private readonly modelName: string = 'gemini-2.0-flash';
 
+  /**
+   * Creates an instance of AIAPIClient.
+   *
+   * @param {string} apiKey - The Google GenAI API key.
+   * @throws {Error} If apiKey is missing.
+   */
   constructor(apiKey: string) {
     if (!apiKey) {
       throw new Error('AIAPIClient requires a valid API key.');
@@ -84,6 +98,10 @@ export class AIAPIClient {
    * - Difficulty level (easy / medium / hard)
    *
    * This is the PRIMARY method for the deterministic engine MVP.
+   *
+   * @param {string[]} subjects - List of subjects to break down.
+   * @param {string} [examName] - Optional name of the exam for context.
+   * @returns {Promise<TopicEstimate[]>} A list of estimated topics.
    */
   async estimateTopics(
     subjects: string[],
@@ -156,6 +174,9 @@ Be thorough but practical. Each topic should represent a single focused study se
 
   /**
    * Simple content generation (kept for general-purpose use).
+   *
+   * @param {string} prompt - The prompt to send to the AI.
+   * @returns {Promise<string>} The generated text content.
    */
   async generateContent(prompt: string): Promise<string> {
     this.logger.info('Requesting content from AI service...');

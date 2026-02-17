@@ -46,6 +46,9 @@ export interface CoverageAnalytics {
 
 // ─── Service Class ──────────────────────────────────────────────────
 
+/**
+ * Service for managing study plans, including creation, retrieval, updates, and scheduling logic.
+ */
 export class StudyPlanService {
   private prisma: PrismaClient;
   private aiClient: AIAPIClient;
@@ -57,6 +60,19 @@ export class StudyPlanService {
 
   // ─── CREATE PLAN ────────────────────────────────────────────────
 
+  /**
+   * Creates a new study plan.
+   *
+   * Orchestrates the following steps:
+   * 1. Validates input.
+   * 2. Calls AI to estimate topics and effort.
+   * 3. Uses the deterministic engine to generate a schedule.
+   * 4. Persists the plan and sessions to the database in a transaction.
+   *
+   * @param {CreatePlanRequest} data - The plan creation request data.
+   * @returns {Promise<{ planId: string; plan: any; metadata: any }>} The created plan details.
+   * @throws {Error} If input is invalid or downstream services fail.
+   */
   async createPlan(data: CreatePlanRequest): Promise<{ planId: string; plan: any; metadata: any }> {
     const func = "createPlan";
     logger.entry(func, { userId: data.userId, subjects: data.subjects });
@@ -130,6 +146,12 @@ export class StudyPlanService {
 
   // ─── GET PLAN ───────────────────────────────────────────────────
 
+  /**
+   * Retrieves a study plan by ID, including its sessions.
+   *
+   * @param {string} id - The study plan ID.
+   * @returns {Promise<any | null>} The study plan object or null if not found.
+   */
   async getPlanById(id: string) {
     logger.entry("getPlanById", { id });
     const studyPlan = await this.prisma.studyPlan.findUnique({
@@ -158,6 +180,12 @@ export class StudyPlanService {
 
   // ─── GET ALL PLANS ──────────────────────────────────────────────
 
+  /**
+   * Retrieves all active study plans for a user.
+   *
+   * @param {string} userId - The user ID.
+   * @returns {Promise<any[]>} List of study plans.
+   */
   async getAllPlans(userId: string) {
     logger.entry("getAllPlans", { userId });
     return this.prisma.studyPlan.findMany({
@@ -169,6 +197,16 @@ export class StudyPlanService {
 
   // ─── UPDATE PLAN ────────────────────────────────────────────────
 
+  /**
+   * Updates a study plan's details.
+   *
+   * Note: This only updates the plan metadata, not the generated schedule/sessions.
+   * To regenerate the schedule, use `reschedule()`.
+   *
+   * @param {string} id - The study plan ID.
+   * @param {Partial<CreatePlanRequest>} updateData - The data to update.
+   * @returns {Promise<any>} The updated study plan.
+   */
   async updatePlanById(id: string, updateData: Partial<CreatePlanRequest>) {
     const func = "updatePlanById";
     logger.entry(func, { id, updateData });
@@ -192,6 +230,12 @@ export class StudyPlanService {
 
   // ─── DELETE PLAN ────────────────────────────────────────────────
 
+  /**
+   * Hard deletes a study plan and its associated sessions.
+   *
+   * @param {string} id - The study plan ID.
+   * @returns {Promise<boolean>} True if successful.
+   */
   async deletePlanById(id: string): Promise<boolean> {
     const func = "deletePlanById";
     logger.entry(func, { id });
@@ -207,6 +251,12 @@ export class StudyPlanService {
 
   // ─── SOFT DELETE (deactivate) ───────────────────────────────────
 
+  /**
+   * Deactivates a study plan (soft delete).
+   *
+   * @param {string} id - The study plan ID.
+   * @returns {Promise<void>}
+   */
   async deactivatePlan(id: string): Promise<void> {
     const func = "deactivatePlan";
     logger.entry(func, { id });
@@ -221,6 +271,16 @@ export class StudyPlanService {
 
   // ─── UPDATE SESSION STATUS ──────────────────────────────────────
 
+  /**
+   * Updates the status of a specific study session.
+   *
+   * Triggers rescheduling if status is 'skipped' or 'partial'.
+   *
+   * @param {string} sessionId - The session ID.
+   * @param {UpdateSessionStatusRequest} update - The update data.
+   * @returns {Promise<void>}
+   * @throws {Error} If status is invalid.
+   */
   async updateSessionStatus(
     sessionId: string,
     update: UpdateSessionStatusRequest
@@ -264,6 +324,13 @@ export class StudyPlanService {
 
   // ─── UPDATE SESSION REMARKS ─────────────────────────────────────
 
+  /**
+   * Updates remarks for a session.
+   *
+   * @param {string} sessionId - The session ID.
+   * @param {string} remarks - The remarks to save.
+   * @returns {Promise<void>}
+   */
   async updateSessionRemarks(sessionId: string, remarks: string): Promise<void> {
     const func = "updateSessionRemarks";
     logger.entry(func, { sessionId });
@@ -278,6 +345,16 @@ export class StudyPlanService {
 
   // ─── RESCHEDULE ─────────────────────────────────────────────────
 
+  /**
+   * Reschedules the remaining workload for a study plan.
+   *
+   * Calculates pending work from incomplete sessions and generates a new schedule
+   * starting from tomorrow.
+   *
+   * @param {string} studyPlanId - The study plan ID.
+   * @returns {Promise<void>}
+   * @throws {Error} If plan not found or inactive.
+   */
   async reschedule(studyPlanId: string): Promise<void> {
     const func = "reschedule";
     logger.entry(func, { studyPlanId });
@@ -399,6 +476,18 @@ export class StudyPlanService {
 
   // ─── COVERAGE ANALYTICS ─────────────────────────────────────────
 
+  /**
+   * Calculates coverage analytics for a study plan.
+   *
+   * Metrics include:
+   * - Completion percentage
+   * - Remaining workload vs. capacity (risk assessment)
+   * - Session counts by status
+   *
+   * @param {string} studyPlanId - The study plan ID.
+   * @returns {Promise<CoverageAnalytics>} The analytics data.
+   * @throws {Error} If plan not found.
+   */
   async getCoverageAnalytics(studyPlanId: string): Promise<CoverageAnalytics> {
     const func = "getCoverageAnalytics";
     logger.entry(func, { studyPlanId });
@@ -563,6 +652,9 @@ export class StudyPlanService {
     return sessions;
   }
 
+  /**
+   * Disconnects the Prisma client.
+   */
   async disconnect(): Promise<void> {
     await this.prisma.$disconnect();
   }

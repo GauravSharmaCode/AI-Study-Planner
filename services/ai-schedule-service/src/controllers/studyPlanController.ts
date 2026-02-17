@@ -7,10 +7,17 @@ import { enqueueReschedule } from "../queues/rescheduleQueue";
 
 const logger = createLogger("study-plan-controller");
 
+/**
+ * Controller for handling study plan and session related requests.
+ */
 export class StudyPlanController {
   /**
    * POST /plans/generate
-   * Generate study plan using AI + deterministic engine
+   *
+   * Generate a study plan using AI estimation + deterministic scheduling engine.
+   *
+   * @param {Request} req - Express request object containing plan details in body.
+   * @param {Response} res - Express response object.
    */
   generateStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const { subjects, availableHoursPerDay, targetCompletionDate, examName, preferredStartTime } =
@@ -41,7 +48,11 @@ export class StudyPlanController {
 
   /**
    * GET /plans
-   * Get all plans for the authenticated user
+   *
+   * Get all active study plans for the authenticated user.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
    */
   getAllPlans = catchAsync(async (req: Request, res: Response) => {
     const userId = req.userId!; // Resolved from JWT
@@ -61,7 +72,12 @@ export class StudyPlanController {
 
   /**
    * GET /plans/:id
-   * Get study plan by ID
+   *
+   * Get a specific study plan by ID.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
+   * @throws {AppError} If plan is not found (404).
    */
   getStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -85,7 +101,11 @@ export class StudyPlanController {
 
   /**
    * PUT /plans/:id
-   * Update study plan metadata
+   *
+   * Update study plan metadata.
+   *
+   * @param {Request} req - Express request object containing update data.
+   * @param {Response} res - Express response object.
    */
   updateStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -104,7 +124,11 @@ export class StudyPlanController {
 
   /**
    * DELETE /plans/:id
-   * Delete study plan and all sessions
+   *
+   * Hard delete a study plan and all its sessions.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
    */
   deleteStudyPlan = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -120,7 +144,12 @@ export class StudyPlanController {
 
   /**
    * POST /plans/:id/reschedule
-   * Trigger async rescheduling for a plan
+   *
+   * Trigger an asynchronous rescheduling job for a plan.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
+   * @throws {AppError} If plan is not found.
    */
   reschedule = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -149,7 +178,11 @@ export class StudyPlanController {
 
   /**
    * GET /plans/:id/analytics
-   * Get coverage analytics for a plan
+   *
+   * Get coverage analytics and progress metrics for a plan.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
    */
   getAnalytics = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -168,7 +201,12 @@ export class StudyPlanController {
 
   /**
    * PATCH /sessions/:id/status
-   * Update session status (triggers reschedule if skipped/partial)
+   *
+   * Update the status of a specific session.
+   * Note: This may trigger an async rescheduling job if the status is 'skipped' or 'partial'.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
    */
   updateSessionStatus = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -191,7 +229,11 @@ export class StudyPlanController {
 
   /**
    * PATCH /sessions/:id/remarks
-   * Update session remarks
+   *
+   * Update remarks/notes for a specific session.
+   *
+   * @param {Request} req - Express request object.
+   * @param {Response} res - Express response object.
    */
   updateSessionRemarks = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);

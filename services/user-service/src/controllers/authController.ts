@@ -9,6 +9,9 @@ import type { UserResponse } from "../interfaces";
 /**
  * A higher-order function that wraps an asynchronous route handler,
  * allowing errors to be automatically passed to the next middleware.
+ *
+ * @param {Function} fn - The async function to wrap.
+ * @returns {Function} Express middleware function.
  */
 const catchAsync = (
   fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
@@ -20,6 +23,11 @@ const catchAsync = (
 
 /**
  * Helper function to send a JSON response with a JWT token and user data.
+ *
+ * @param {UserResponse} user - The user object.
+ * @param {number} statusCode - HTTP status code.
+ * @param {Response} res - Express response object.
+ * @param {string} [message="Authentication successful"] - Response message.
  */
 const createSendToken = (
   user: UserResponse,
@@ -46,6 +54,11 @@ const createSendToken = (
   });
 };
 
+/**
+ * POST /auth/register
+ *
+ * Registers a new user and issues a JWT token.
+ */
 const register = catchAsync(async (req: Request, res: Response) => {
   const func = "authController.register";
   logger.entry(func, { email: req.body.email });
@@ -67,6 +80,12 @@ const register = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * POST /auth/login
+ *
+ * Authenticates a user and issues a JWT token.
+ * Requires email and password in the request body.
+ */
 const login = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const func = "authController.login";
@@ -87,6 +106,11 @@ const login = catchAsync(
   }
 );
 
+/**
+ * GET /auth/logout
+ *
+ * Logs out a user (client-side token removal expected).
+ */
 const logout = (req: AuthenticatedRequest, res: Response): void => {
   const func = "authController.logout";
   logger.info("User logout", func, { userId: req.user?.id || "guest" });

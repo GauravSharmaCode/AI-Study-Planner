@@ -17,6 +17,9 @@ type AsyncRequestHandler = (
   next: NextFunction
 ) => Promise<void>;
 
+/**
+ * Wraps async route handlers to catch errors.
+ */
 const catchAsync = (fn: AsyncRequestHandler) => {
   return (
     req: Request | AuthenticatedRequest,
@@ -27,6 +30,10 @@ const catchAsync = (fn: AsyncRequestHandler) => {
   };
 };
 
+/**
+ * POST /users
+ * Creates a new user (admin route).
+ */
 const createUser = catchAsync(async (req: Request, res: Response) => {
   const func = "userController.createUser";
   const createUserData = req.body as CreateUserRequest;
@@ -45,6 +52,10 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * GET /users/:id
+ * Retrieves a user by ID.
+ */
 const getUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const func = "userController.getUser";
@@ -74,6 +85,10 @@ const getUser = catchAsync(
   }
 );
 
+/**
+ * GET /users
+ * Retrieves all users with filtering.
+ */
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const func = "userController.getAllUsers";
   const filters = req.query as UserFilters;
@@ -90,6 +105,10 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * PATCH /users/:id
+ * Updates a user by ID (admin route).
+ */
 const updateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const func = "userController.updateUser";
@@ -123,6 +142,10 @@ const updateUser = catchAsync(
   }
 );
 
+/**
+ * DELETE /users/:id
+ * Soft deletes a user by ID (admin route).
+ */
 const deleteUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const func = "userController.deleteUser";
@@ -145,6 +168,10 @@ const deleteUser = catchAsync(
   }
 );
 
+/**
+ * Middleware to set req.params.id to the authenticated user's ID.
+ * Used for /me routes.
+ */
 const getMe = (
   req: AuthenticatedRequest,
   res: Response,
@@ -156,6 +183,11 @@ const getMe = (
   next();
 };
 
+/**
+ * PATCH /users/me
+ * Updates the currently authenticated user's profile.
+ * Prevents password updates via this route.
+ */
 const updateMe = catchAsync(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const func = "userController.updateMe";
@@ -209,6 +241,10 @@ const updateMe = catchAsync(
   }
 );
 
+/**
+ * DELETE /users/me
+ * Soft deletes the currently authenticated user's account.
+ */
 const deleteMe = catchAsync(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const func = "userController.deleteMe";
@@ -231,6 +267,10 @@ const deleteMe = catchAsync(
   }
 );
 
+/**
+ * GET /users/stats
+ * (Not implemented)
+ */
 const getUserStats = catchAsync(async (req: Request, res: Response) => {
   const func = "userController.getUserStats";
   logger.entry(func);
@@ -242,6 +282,10 @@ const getUserStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * POST /users/change-password
+ * (Not implemented)
+ */
 const changePassword = catchAsync(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const func = "userController.changePassword";

@@ -110,6 +110,13 @@ const REVISION_LOOKAHEAD_DAYS = 3;
 
 /**
  * Step 0: Compute scheduling capacity.
+ *
+ * Calculates the total available minutes between today and the target completion date.
+ *
+ * @param {Date} targetCompletionDate - The target date to complete the schedule.
+ * @param {Date} today - The starting date.
+ * @param {number} availableHoursPerDay - Number of hours available per day.
+ * @returns {CapacityResult} The capacity calculation result.
  */
 export function computeCapacity(
   targetCompletionDate: Date,
@@ -137,6 +144,9 @@ export function computeCapacity(
 
 /**
  * Step 1: Normalize topic effort using difficulty multipliers.
+ *
+ * @param {TopicEstimate[]} topics - List of topics with estimated hours and difficulty.
+ * @returns {NormalizedTopic[]} List of topics with normalized weights and total minutes.
  */
 export function normalizeTopicEffort(
   topics: TopicEstimate[],
@@ -154,6 +164,11 @@ export function normalizeTopicEffort(
 
 /**
  * Step 2: Validate that total workload fits within capacity.
+ *
+ * @param {number} workloadMinutes - Total required minutes.
+ * @param {number} capacityMinutes - Total available minutes.
+ * @param {number} totalDays - Total number of days.
+ * @throws {OverloadError} If workload exceeds capacity.
  */
 export function validateCapacity(
   workloadMinutes: number,
@@ -170,6 +185,11 @@ export function validateCapacity(
  *
  * Strategy: sort topics by descending weight, assign each topic chunk
  * to the day with the least current load.
+ *
+ * @param {NormalizedTopic[]} topics - List of normalized topics.
+ * @param {number} totalDays - Total number of days available.
+ * @param {number} dailyAvailableMinutes - Minutes available per day.
+ * @returns {Map<number, { topic: NormalizedTopic; minutes: number }[]>} Map of day index to list of topic allocations.
  */
 export function distributeTopics(
   topics: NormalizedTopic[],
@@ -238,6 +258,10 @@ export function distributeTopics(
  * - Max continuous session = 90 minutes
  * - Min session = 30 minutes (unless it's the only remaining chunk)
  * - 10-minute break after each session (except last)
+ *
+ * @param {{ topic: NormalizedTopic; minutes: number }[]} dayAllocation - List of topic allocations for the day.
+ * @param {string} preferredStartTime - Preferred start time in "HH:mm" format.
+ * @returns {TimeBlock[]} List of generated time blocks.
  */
 export function generateTimeBlocks(
   dayAllocation: { topic: NormalizedTopic; minutes: number }[],
@@ -294,6 +318,14 @@ export function generateTimeBlocks(
  * If revision day exceeds targetCompletionDate, it is skipped.
  *
  * UPDATE: If target day is full, search up to REVISION_LOOKAHEAD_DAYS forward.
+ *
+ * @param {DayPlan[]} days - List of day plans.
+ * @param {Map<string, number>} topicCompletionDays - Map of topic name to completion day index.
+ * @param {NormalizedTopic[]} topics - List of normalized topics.
+ * @param {Date} targetCompletionDate - Target date for schedule completion.
+ * @param {string} preferredStartTime - Preferred start time for sessions.
+ * @param {number} dailyAvailableMinutes - Daily capacity in minutes.
+ * @returns {DayPlan[]} Updated day plans with revision sessions.
  */
 export function insertRevisionSessions(
   days: DayPlan[],
@@ -389,6 +421,10 @@ export function insertRevisionSessions(
  * 6. Insert revision sessions
  *
  * Returns a fully deterministic schedule — same input → same output.
+ *
+ * @param {ScheduleInput} input - Schedule input parameters.
+ * @param {Date} [today=new Date()] - Start date.
+ * @returns {ScheduleResult} generated schedule.
  */
 export function generateSchedule(
   input: ScheduleInput,
@@ -485,14 +521,24 @@ export function generateSchedule(
 
 // ─── Utility Helpers ────────────────────────────────────────────────
 
-/** Convert minutes since midnight to "HH:mm" */
+/**
+ * Convert minutes since midnight to "HH:mm"
+ *
+ * @param {number} minutes - Minutes since midnight.
+ * @returns {string} Time formatted as "HH:mm".
+ */
 export function minutesToHHMM(minutes: number): string {
   const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-/** Convert "HH:mm" to minutes since midnight */
+/**
+ * Convert "HH:mm" to minutes since midnight
+ *
+ * @param {string} hhmm - Time formatted as "HH:mm".
+ * @returns {number} Minutes since midnight.
+ */
 export function hhmmToMinutes(hhmm: string): number {
   const [hStr, mStr] = hhmm.split(":");
   const h = Number(hStr);
