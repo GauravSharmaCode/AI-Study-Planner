@@ -282,18 +282,28 @@ export class StudyPlanService {
     const func = "reschedule";
     logger.entry(func, { studyPlanId });
 
-    const plan = await this.prisma.studyPlan.findUnique({
-      where: { id: studyPlanId },
-      include: { sessions: true },
-    });
-
-    if (!plan) throw new Error(`Study plan not found: ${studyPlanId}`);
-    if (!plan.isActive) throw new Error(`Study plan is deactivated: ${studyPlanId}`);
-
     const now = new Date();
     const tomorrowMidnight = new Date(Date.UTC(
       now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1
     ));
+
+    const plan = await this.prisma.studyPlan.findUnique({
+      where: { id: studyPlanId },
+      include: {
+        sessions: {
+          where: {
+            OR: [
+              { status: 'skipped' },
+              { status: 'partial', completedMinutes: { not: null } },
+              { status: 'pending', date: { gte: tomorrowMidnight } },
+            ],
+          },
+        },
+      },
+    });
+
+    if (!plan) throw new Error(`Study plan not found: ${studyPlanId}`);
+    if (!plan.isActive) throw new Error(`Study plan is deactivated: ${studyPlanId}`);
 
     // Compute remaining workload from incomplete sessions
     let remainingMinutes = 0;
