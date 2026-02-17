@@ -1,45 +1,58 @@
-# AI Study Planner - Product Overview
+# Product Overview
 
-## Purpose & Value Proposition
-AI Study Planner is an intelligent microservices application that generates personalized study schedules using Google Gemini AI. It transforms study goals into actionable, time-optimized plans while tracking progress through structured sessions.
+## Purpose
+AI Study Planner is a microservices-based application that helps students prepare for high-stakes examinations by generating structured, balanced daily study plans using Google Gemini AI. The system adapts dynamically based on execution data, redistributing workload when sessions are skipped or completed.
 
-## Key Features & Capabilities
+## Value Proposition
+- **AI-Powered Planning**: Leverages Google Gemini AI for intelligent study schedule generation with deterministic scheduling logic
+- **Adaptive Rescheduling**: Automatically redistributes workload using background workers (BullMQ) when sessions are skipped
+- **Scalable Architecture**: Built with microservices pattern for independent scaling and deployment
+- **Production-Ready**: Includes NGINX gateway, rate limiting, health checks, and comprehensive monitoring
 
-### AI-Powered Study Planning
-- **Intelligent Schedule Generation**: Uses Google Gemini AI to create personalized study plans based on subjects, available hours, and target completion dates
-- **Dynamic Session Management**: Automatically breaks down study plans into manageable daily sessions
-- **Progress Tracking**: Real-time monitoring of study session completion and remarks
+## Key Features
 
-### User Management & Authentication
-- **Secure Authentication**: JWT-based authentication system with bcrypt password hashing
-- **User Profiles**: Comprehensive user management with profile data and preferences
-- **Session Management**: Redis-backed session handling for scalable user state
+### Study Plan Management
+- Generate AI-assisted study plans with heuristic estimation
+- Create, update, track, and delete study plans
+- View plan analytics and progress tracking
+- Manual reschedule triggers for plan adjustments
 
-### Microservices Architecture
-- **Service Isolation**: Independent user and AI schedule services with separate databases
-- **API Gateway**: NGINX-based gateway for unified API access and load balancing
-- **Container-First**: Full Docker containerization for consistent deployment
+### Session Management
+- Track daily study sessions with status updates (completed/skipped)
+- Add remarks and notes to sessions
+- Automatic workload redistribution on session status changes
+- Session-level progress monitoring
 
-### Data Management
-- **Multi-Database**: Separate PostgreSQL databases for user and schedule data
-- **Schema-First Design**: Zod-based validation ensuring runtime safety and type consistency
-- **Caching Layer**: Redis integration for performance optimization
+### User Management
+- Secure user registration and authentication with JWT
+- Profile management and updates
+- Role-based access control (RBAC)
+- User statistics dashboard (Admin only)
 
-## Target Users & Use Cases
+### Infrastructure Features
+- **API Gateway**: NGINX-based reverse proxy with rate limiting and load balancing
+- **Health Monitoring**: Built-in health endpoints for all services
+- **Security**: JWT authentication, bcrypt password hashing, security headers, CORS
+- **Caching & Queuing**: Redis for caching and BullMQ job processing
+- **Database**: PostgreSQL with Prisma ORM for type-safe database access
+
+## Target Users
 
 ### Primary Users
-- **Students**: Individuals seeking structured study schedules for academic success
-- **Self-Learners**: People pursuing personal education goals with time constraints
-- **Educators**: Teachers and tutors managing multiple student study plans
+- **Students**: Preparing for competitive exams, certifications, or academic tests
+- **Self-Learners**: Individuals managing complex learning schedules
+- **Educators**: Creating structured study plans for students
 
-### Core Use Cases
-1. **Study Plan Creation**: Generate AI-optimized schedules based on learning objectives
-2. **Progress Monitoring**: Track completion rates and add session-specific notes
-3. **Schedule Adaptation**: Modify plans based on progress and changing requirements
-4. **Multi-Subject Management**: Handle complex study schedules across multiple topics
+### Use Cases
+1. **Exam Preparation**: Generate comprehensive study schedules for upcoming exams
+2. **Skill Development**: Plan learning paths for new technologies or subjects
+3. **Time Management**: Balance multiple subjects with optimal time allocation
+4. **Progress Tracking**: Monitor study completion and adjust plans dynamically
+5. **Adaptive Learning**: Automatically reschedule based on actual progress
 
-### Business Value
-- **Time Optimization**: AI-driven scheduling maximizes learning efficiency
-- **Consistency**: Structured approach improves study habit formation
-- **Scalability**: Microservices architecture supports growing user bases
-- **Flexibility**: Modular design allows feature expansion and customization
+## Technical Highlights
+- **Microservices Architecture**: Independent services for user management and scheduling
+- **Containerized Deployment**: Docker and Docker Compose for easy deployment
+- **Type Safety**: Full TypeScript implementation across all services
+- **API-First Design**: RESTful APIs with comprehensive endpoint coverage
+- **Observability**: Structured logging, health checks, and monitoring capabilities

@@ -1,83 +1,147 @@
-# AI Study Planner - Project Structure
+# Project Structure
 
 ## Directory Organization
 
-### Root Level Structure
 ```
 ai-study-planner/
-├── services/           # Microservices (user-service, ai-schedule-service)
-├── apps/              # Applications (nginx-gateway)
-├── infra/             # Infrastructure scripts and configurations
-├── docs/              # Documentation and planning files
-├── scripts/           # Development and testing utilities
-├── logs/              # Centralized logging directory
-└── package.json       # Workspace configuration
+├── apps/                          # Application layer
+│   └── nginx-gateway/            # NGINX API Gateway (Port 8080)
+│       ├── nginx.conf            # Gateway configuration
+│       ├── Dockerfile            # Gateway container
+│       └── README.md             # Gateway documentation
+│
+├── services/                      # Microservices layer
+│   ├── user-service/             # User management service (Port 3001)
+│   │   ├── src/
+│   │   │   ├── controllers/      # Request handlers
+│   │   │   ├── middleware/       # Express middleware (auth, validation)
+│   │   │   ├── routes/           # API route definitions
+│   │   │   ├── services/         # Business logic layer
+│   │   │   ├── utils/            # Utility functions
+│   │   │   └── index.ts          # Service entry point
+│   │   ├── prisma/               # Database schema & migrations
+│   │   ├── tests/                # Unit and integration tests
+│   │   ├── Dockerfile            # Service container
+│   │   └── package.json          # Service dependencies
+│   │
+│   └── ai-schedule-service/      # AI scheduling service (Port 3002)
+│       ├── src/
+│       │   ├── controllers/      # Plan & session controllers
+│       │   ├── services/         # Scheduling engine & AI client
+│       │   ├── queues/           # BullMQ queue definitions
+│       │   ├── workers/          # Background reschedule workers
+│       │   ├── middleware/       # Auth & validation middleware
+│       │   ├── routes/           # API route definitions
+│       │   ├── utils/            # Utility functions
+│       │   └── index.ts          # Service entry point
+│       ├── prisma/               # Database schema & migrations
+│       ├── tests/                # Unit and integration tests
+│       ├── Dockerfile            # Service container
+│       └── package.json          # Service dependencies
+│
+├── infra/                         # Infrastructure configuration
+│   ├── nginx.conf                # Load balancer configuration
+│   ├── init-user-db.sql          # User DB initialization
+│   └── init-schedule-db.sql      # Schedule DB initialization
+│
+├── scripts/                       # Development & testing scripts
+│   ├── dev-helper.sh/bat         # Development utilities
+│   ├── test-integration.js       # Integration test suite
+│   ├── test-api.bat              # API testing script
+│   └── test-structure.sh/bat     # Structure validation
+│
+├── logs/                          # Application logs
+├── .github/workflows/            # CI/CD pipelines
+├── docker-compose.yml            # Service orchestration
+├── package.json                  # Workspace configuration
+└── tsconfig.base.json            # Shared TypeScript config
 ```
 
-### Services Architecture
-**Monorepo with Independent Services**
-- `services/user-service/` - User management and authentication (Port 3001)
-- `services/ai-schedule-service/` - AI-powered study planning (Port 3002)
-- `apps/nginx-gateway/` - API gateway and load balancer (Port 8080)
+## Core Components
 
-### Service Internal Structure
-Each service follows consistent organization:
-```
-service-name/
-├── src/
-│   ├── config/        # Database and environment configuration
-│   ├── controllers/   # HTTP request handlers
-│   ├── middleware/    # Authentication, validation, error handling
-│   ├── models/        # Data models and database interactions
-│   ├── routes/        # API route definitions
-│   ├── schemas/       # Zod validation schemas
-│   ├── services/      # Business logic layer
-│   └── utils/         # Shared utilities (logging, clients)
-├── tests/
-│   ├── unit/          # Unit tests
-│   └── integration/   # Integration tests
-├── prisma/            # Database schema and migrations
-└── package.json       # Service-specific dependencies
-```
+### 1. NGINX Gateway (Port 8080)
+**Purpose**: API Gateway and reverse proxy
+- Routes requests to appropriate microservices
+- Implements rate limiting with different zones
+- Provides load balancing with health checks
+- Handles CORS and security headers
+- Exposes health endpoint on port 8090
 
-## Core Components & Relationships
+### 2. User Service (Port 3001)
+**Purpose**: User authentication and profile management
+**Database**: PostgreSQL (Port 5432)
+**Key Components**:
+- Authentication controller (register, login, logout)
+- User profile controller (CRUD operations)
+- JWT middleware for token validation
+- Bcrypt for password hashing
+- Prisma ORM for database access
 
-### Data Layer
-- **PostgreSQL Databases**: Separate databases per service for data isolation
-  - `user_service_db` (Port 5432) - User data and authentication
-  - `ai_schedule_db` (Port 5433) - Study plans and sessions
-- **Redis Cache** (Port 6379) - Session management and caching
-- **Prisma ORM**: Type-safe database access with schema-first approach
+### 3. AI Schedule Service (Port 3002)
+**Purpose**: AI-powered study schedule generation
+**Database**: PostgreSQL (Port 5433)
+**Cache/Queue**: Redis (Port 6379)
+**Key Components**:
+- Plan controller (generate, CRUD, analytics)
+- Session controller (status updates, remarks)
+- Scheduling engine (deterministic logic)
+- AI client (Google Gemini integration)
+- BullMQ workers (adaptive rescheduling)
+- User validation via HTTP to User Service
 
-### Service Communication
-- **HTTP APIs**: RESTful communication between services
-- **Service Discovery**: Direct container-to-container communication via Docker network
-- **Shared Contracts**: Zod schemas ensure type safety across service boundaries
-
-### Infrastructure Components
-- **NGINX Gateway**: Reverse proxy, load balancing, and API routing
-- **Docker Network**: `ai-study-network` for secure inter-service communication
-- **Health Checks**: Comprehensive health monitoring for all services
-- **Logging**: Centralized Winston-based logging with file and console outputs
+### 4. Supporting Infrastructure
+- **PostgreSQL Databases**: Separate databases for each service
+- **Redis**: Caching and BullMQ job queue
+- **Docker Network**: Bridge network for service communication
 
 ## Architectural Patterns
 
-### Microservices Design
-- **Domain Separation**: Clear boundaries between user management and AI scheduling
-- **Database Per Service**: Independent data stores prevent coupling
-- **API Gateway Pattern**: Single entry point for external clients
+### Microservices Architecture
+- **Domain Separation**: Each service owns its domain and database
+- **Independent Deployment**: Services can be deployed independently
+- **Service Communication**: HTTP for synchronous, Redis/BullMQ for async
+- **API Gateway Pattern**: Single entry point through NGINX
 
-### Schema-First Development
-- **Zod Validation**: Runtime validation with TypeScript type inference
-- **Contract Enforcement**: Shared schemas ensure API consistency
-- **Type Safety**: Compile-time and runtime type checking
+### Layered Architecture (Per Service)
+```
+Routes → Controllers → Services → Database
+         ↓
+    Middleware (Auth, Validation)
+```
 
-### Container Architecture
-- **Multi-Stage Builds**: Optimized Docker images with build and runtime stages
-- **Health Monitoring**: Container health checks for reliable deployments
-- **Volume Management**: Persistent data storage and log aggregation
+### Database Per Service Pattern
+- User Service: `user_service_db` (Port 5432)
+- AI Schedule Service: `ai_schedule_db` (Port 5433)
+- No direct database sharing between services
 
-### Development Patterns
-- **Workspace Management**: npm workspaces for monorepo dependency handling
-- **Environment Configuration**: Docker Compose for local development
-- **Testing Strategy**: Separate unit and integration test suites per service
+### Background Job Processing
+- BullMQ workers for asynchronous reschedule operations
+- Redis as job queue and cache
+- Automatic workload redistribution on session status changes
+
+## Service Relationships
+
+```
+Client → NGINX Gateway (8080)
+           ↓
+    ┌──────┴──────┐
+    ↓             ↓
+User Service  AI Schedule Service
+    ↓             ↓
+User DB       Schedule DB
+              ↓
+            Redis (Cache + Queue)
+              ↓
+         BullMQ Workers
+```
+
+### Inter-Service Communication
+- **AI Schedule → User Service**: HTTP calls for user validation
+- **Services → Redis**: Caching and job queue operations
+- **NGINX → Services**: HTTP reverse proxy with health checks
+
+## Configuration Management
+- **Environment Variables**: Service-specific .env files
+- **Docker Compose**: Centralized service orchestration
+- **Shared Config**: Base TypeScript config for consistency
+- **Workspace**: npm workspaces for monorepo management
