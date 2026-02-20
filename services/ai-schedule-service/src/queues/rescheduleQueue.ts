@@ -71,7 +71,7 @@ export async function enqueueReschedule(
   });
 }
 
-let monitoringInterval: NodeJS.Timeout | undefined;
+let monitoringInterval: ReturnType<typeof setInterval> | undefined;
 
 export function startQueueMonitoring() {
   if (monitoringInterval) return;
