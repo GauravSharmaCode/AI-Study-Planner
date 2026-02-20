@@ -1,14 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import CircuitBreaker from 'opossum';
 import { createLogger } from '../utils/logger';
 import { TopicEstimate } from './schedulingEngine';
+import { aiApiLatencySeconds } from '../utils/metrics';
 
 /**
  * Retry configuration for AI API calls
+ * Reduced for circuit breaker compatibility (8s hard timeout)
  */
 const RETRY_CONFIG = {
-  maxRetries: 3,
-  initialDelayMs: 1000,
-  maxDelayMs: 10000,
+  maxRetries: 2,
+  initialDelayMs: 500,
+  maxDelayMs: 2000,
   backoffMultiplier: 2,
 };
 
@@ -74,6 +77,7 @@ export class AIAPIClient {
   private readonly logger = createLogger('ai-client');
   private readonly ai: GoogleGenAI;
   private readonly modelName: string = 'gemini-2.0-flash';
+  private readonly breaker: CircuitBreaker;
 
   /**
    * Creates an instance of AIAPIClient.
@@ -86,6 +90,77 @@ export class AIAPIClient {
       throw new Error('AIAPIClient requires a valid API key.');
     }
     this.ai = new GoogleGenAI({ apiKey });
+
+    // Initialize Circuit Breaker
+    const breakerOptions = {
+      timeout: 8000, // 8s hard cap
+      errorThresholdPercentage: 50,
+      resetTimeout: 10000, // 10s
+    };
+
+    this.breaker = new CircuitBreaker(this.executeAIRequest.bind(this), breakerOptions);
+
+    this.breaker.fallback((err: any, params: any) => {
+       // Check if we are calling estimateTopics
+       if (params && params.type === 'estimateTopics') {
+           return this.deterministicFallback(params.subjects);
+       }
+       // Re-throw for other types or if no fallback possible
+       throw err;
+    });
+
+    this.breaker.on('open', () => this.logger.warn('Circuit Breaker OPEN'));
+    this.breaker.on('halfOpen', () => this.logger.info('Circuit Breaker HALF-OPEN'));
+    this.breaker.on('close', () => this.logger.info('Circuit Breaker CLOSED'));
+  }
+
+  /**
+   * Internal method to execute AI request with retry.
+   * Used by CircuitBreaker.
+   */
+  private async executeAIRequest(params: any): Promise<any> {
+    const start = Date.now();
+    try {
+      const result = await retryWithBackoff(
+        params.fn,
+        params.operation,
+        this.logger
+      );
+
+      const duration = (Date.now() - start) / 1000;
+      aiApiLatencySeconds.observe({ operation: params.operation, status: 'success' }, duration);
+
+      return result;
+    } catch (error) {
+      const duration = (Date.now() - start) / 1000;
+      aiApiLatencySeconds.observe({ operation: params.operation, status: 'failure' }, duration);
+      throw error;
+    }
+  }
+
+  /**
+   * Fallback method for topic estimation.
+   */
+  private deterministicFallback(subjects: string[]): TopicEstimate[] {
+    this.logger.warn('Using deterministic fallback for topic estimation');
+    const estimates: TopicEstimate[] = [];
+
+    for (const subject of subjects) {
+      // Create generic topics for the subject
+      estimates.push({
+        name: `${subject} - Core Concepts`,
+        subject: subject,
+        estimatedHours: 2,
+        difficulty: 'medium'
+      });
+      estimates.push({
+        name: `${subject} - Advanced Topics`,
+        subject: subject,
+        estimatedHours: 2,
+        difficulty: 'hard'
+      });
+    }
+    return estimates;
   }
 
   /**
@@ -128,8 +203,7 @@ For each topic, provide:
 
 Be thorough but practical. Each topic should represent a single focused study session or a small number of sessions. Aim for topics that take 1-4 hours each on average.`;
 
-    return retryWithBackoff(
-      async () => {
+    const apiCallFn = async () => {
         const result = await this.ai.models.generateContent({
           model: this.modelName,
           contents: [{ parts: [{ text: prompt }] }],
@@ -166,10 +240,15 @@ Be thorough but practical. Each topic should represent a single focused study se
             : 'medium') as 'easy' | 'medium' | 'hard',
           estimatedHours: Math.max(0.5, Math.min(8, topic.estimatedHours)),
         }));
-      },
-      'AI topic estimation',
-      this.logger
-    );
+    };
+
+    // Execute via Circuit Breaker
+    return this.breaker.fire({
+      fn: apiCallFn,
+      operation: 'AI topic estimation',
+      type: 'estimateTopics',
+      subjects: subjects
+    }) as Promise<TopicEstimate[]>;
   }
 
   /**
@@ -181,17 +260,19 @@ Be thorough but practical. Each topic should represent a single focused study se
   async generateContent(prompt: string): Promise<string> {
     this.logger.info('Requesting content from AI service...');
 
-    return retryWithBackoff(
-      async () => {
+    const apiCallFn = async () => {
         const result = await this.ai.models.generateContent({
           model: this.modelName,
           contents: prompt
         });
 
         return result.text || '';
-      },
-      'AI content generation',
-      this.logger
-    );
+    };
+
+    return this.breaker.fire({
+      fn: apiCallFn,
+      operation: 'AI content generation',
+      type: 'contentGeneration'
+    }) as Promise<string>;
   }
 }

@@ -5,12 +5,15 @@ import studyPlanRoutes from './routes/studyPlanRoutes';
 import sessionRoutes from './routes/sessionRoutes';
 import { correlationIdMiddleware } from './middleware/correlationId';
 import { contextMiddleware } from './middleware/contextMiddleware';
+import { requestIdMiddleware } from './middleware/requestId';
+import { metricsMiddleware } from './middleware/metricsMiddleware';
 import { requestLogger } from './middleware/requestLogger';
 import { createLogger } from './utils/logger';
+import register from './utils/metrics';
 import config from './config';
 import globalErrorHandler from './middleware/errorHandler';
 import { startRescheduleWorker, stopRescheduleWorker } from './workers/rescheduleWorker';
-import { closeQueue } from './queues/rescheduleQueue';
+import { closeQueue, startQueueMonitoring } from './queues/rescheduleQueue';
 
 const logger = createLogger('api-server');
 
@@ -20,7 +23,9 @@ const PORT = config.port;
 
 // Context & Correlation ID (First!)
 app.use(contextMiddleware);
+app.use(requestIdMiddleware);
 app.use(correlationIdMiddleware);
+app.use(metricsMiddleware);
 
 // Middleware
 app.use(helmet());
@@ -39,6 +44,16 @@ app.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '2.0.0'
   });
+});
+
+// Prometheus Metrics Endpoint
+app.get('/metrics', async (req: Request, res: Response) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (err) {
+    res.status(500).end(err);
+  }
 });
 
 // API Routes (unversioned — backward compat)
@@ -79,6 +94,7 @@ const server = app.listen(PORT, () => {
   if (config.nodeEnv !== 'test') {
     try {
       startRescheduleWorker();
+      startQueueMonitoring(); // Start monitoring queue depth
       logger.info('Reschedule worker started');
     } catch (error) {
       logger.warn('Failed to start reschedule worker (Redis may not be available)', {
