@@ -220,17 +220,20 @@ This document is for agentic coding agents operating in this monorepo. It captur
 
 1. Install deps: `npm install` (root; installs all workspaces).
 2. Run dev locally:
+
    ```bash
    # Terminal 1
    cd services/user-service && npm run dev
    # Terminal 2
    cd services/ai-schedule-service && npm run dev
    ```
+
 3. Build all: `npm run build`.
 4. Lint/format: `npm run lint` and `npm run format`.
 5. Tests:
    - All: `npm run test`.
    - Single file/name: run `npx jest` inside the target service (see examples above).
+
 6. Docker: `docker-compose up -d --build` and verify `http://localhost:8080/health`.
 
 ## Branching and PR Conventions
@@ -273,4 +276,65 @@ To support both monorepo efficiency and independent Docker builds:
 
 ---
 
-Agents should keep this guide updated when tooling or conventions change. If you add Cursor/Copilot rules, new scripts, or config files, append their details here.
+Agents must keep this guide updated when tooling, workflows, or conventions change.
+
+If you introduce or modify:
+
+AI integration directories (.agent/, .qwen/, .opencode/, .amazonq/, etc.)
+
+Governance files (AGENTS.md, QWEN.md, future tool-specific configs)
+
+Scripts, CI workflows, or project-level configuration
+
+Editor-specific rules (Cursor, Copilot, or others)
+
+You are required to update this document to reflect the change.
+
+No AI integration or governance change is complete unless this guide is updated accordingly.
+
+---
+
+## SpecKit Canonical Workflow
+
+The canonical Spec-Driven Development lifecycle is defined only in:
+
+```
+.agent/workflows/speckit.*.md
+```
+
+These files are the single source of truth for:
+
+Phase ordering
+
+Validation gates
+
+Cross-artifact checks
+
+Constitution enforcement
+
+Tool Adapter Rule
+
+Tool-specific command systems (e.g., .qwen/commands/, .opencode/commands/, future integrations):
+
+Must wrap or reference the canonical speckit.\*.md definitions
+
+May adapt syntax or CLI formatting
+
+Must not redefine phases
+
+Must not introduce new mandatory lifecycle steps
+
+Must not bypass validation gates
+
+Must not alter canonical workflow semantics
+
+If divergence is suspected, the agent must:
+
+Identify the exact file
+
+Identify the specific lines
+
+Explain the behavioral difference
+
+The workflow authority lives in .agent/workflows/.
+All tools conform to it.
