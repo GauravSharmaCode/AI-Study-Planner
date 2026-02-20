@@ -12,6 +12,7 @@ import {
 } from "../queues/rescheduleQueue";
 import { StudyPlanService } from "../services/studyPlanService";
 import { createLogger } from "../utils/logger";
+import { rescheduleJobDurationSeconds } from "../utils/metrics";
 
 const logger = createLogger("reschedule-worker");
 
@@ -53,6 +54,8 @@ export function startRescheduleWorker(): Worker {
         await studyPlanService.reschedule(studyPlanId);
 
         const duration = Date.now() - startTime;
+        rescheduleJobDurationSeconds.observe({ status: 'success' }, duration / 1000);
+
         logger.info("Reschedule job completed", {
           jobId: job.id,
           studyPlanId,
@@ -61,6 +64,8 @@ export function startRescheduleWorker(): Worker {
         });
       } catch (error) {
         const duration = Date.now() - startTime;
+        rescheduleJobDurationSeconds.observe({ status: 'failure' }, duration / 1000);
+
         logger.error("Reschedule job failed", {
           jobId: job.id,
           studyPlanId,

@@ -7,6 +7,7 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 import { createLogger } from "../utils/logger";
+import { queueDepth, queueFailedCount } from "../utils/metrics";
 
 const logger = createLogger("reschedule-queue");
 
@@ -70,10 +71,41 @@ export async function enqueueReschedule(
   });
 }
 
+let monitoringInterval: NodeJS.Timeout | undefined;
+
+export function startQueueMonitoring() {
+  if (monitoringInterval) return;
+
+  // Update initially
+  updateQueueMetrics();
+
+  monitoringInterval = setInterval(updateQueueMetrics, 5000);
+}
+
+async function updateQueueMetrics() {
+  try {
+    const waiting = await rescheduleQueue.getWaitingCount();
+    const failed = await rescheduleQueue.getFailedCount();
+
+    queueDepth.set({ queue_name: RESCHEDULE_QUEUE_NAME }, waiting);
+    queueFailedCount.set({ queue_name: RESCHEDULE_QUEUE_NAME }, failed);
+  } catch (err) {
+    logger.warn('Failed to monitor queue depth (Redis may be down)', { error: (err as Error).message });
+  }
+}
+
+export function stopQueueMonitoring() {
+  if (monitoringInterval) {
+    clearInterval(monitoringInterval);
+    monitoringInterval = undefined;
+  }
+}
+
 /**
  * Graceful shutdown
  */
 export async function closeQueue(): Promise<void> {
+  stopQueueMonitoring();
   await rescheduleQueue.close();
   if (connection) {
     await connection.quit();

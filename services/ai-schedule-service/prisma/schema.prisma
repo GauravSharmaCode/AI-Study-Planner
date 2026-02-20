@@ -18,6 +18,7 @@ model StudyPlan {
   targetCompletionDate  DateTime // Exam/target date
   plan                  Json     // Generated deterministic schedule snapshot
   isActive              Boolean  @default(true)
+  version               Int      @default(0) // Optimistic locking
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

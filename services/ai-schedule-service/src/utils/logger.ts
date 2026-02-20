@@ -5,7 +5,9 @@ import { sanitize } from "./sanitizer";
 const contextFormat = winston.format((info) => {
   const context = getContext();
   if (context.correlationId) info.correlationId = context.correlationId;
+  if (context.requestId) info.requestId = context.requestId;
   if (context.userId) info.userId = context.userId;
+  if (context.planId) info.planId = context.planId;
   return info;
 });
 

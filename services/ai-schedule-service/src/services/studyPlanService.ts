@@ -1,7 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { AIAPIClient } from './ai-api-client';
 import { createLogger } from "../utils/logger";
 import { prisma } from '../config/database';
+import { planGenerationDurationSeconds, dbTransactionDurationSeconds } from "../utils/metrics";
 import {
   generateSchedule,
   ScheduleInput,
@@ -76,8 +77,10 @@ export class StudyPlanService {
   async createPlan(data: CreatePlanRequest): Promise<{ planId: string; plan: any; metadata: any }> {
     const func = "createPlan";
     logger.entry(func, { userId: data.userId, subjects: data.subjects });
+    const start = Date.now();
 
-    this.validateCreatePlanInput(data);
+    try {
+      this.validateCreatePlanInput(data);
 
     const preferredStartTime = data.preferredStartTime || '08:00';
     const targetDate = new Date(data.targetCompletionDate);
@@ -111,7 +114,14 @@ export class StudyPlanService {
     const scheduleResult = generateSchedule(scheduleInput);
 
     // Step 3: Persist everything in a transaction
+    const dbStart = Date.now();
     const studyPlan = await this.prisma.$transaction(async (tx) => {
+      // Deactivate any existing active plans for this user (Single Active Plan Rule)
+      await tx.studyPlan.updateMany({
+        where: { userId: data.userId, isActive: true },
+        data: { isActive: false },
+      });
+
       // Create the study plan
       const plan = await tx.studyPlan.create({
         data: {
@@ -134,14 +144,24 @@ export class StudyPlanService {
 
       return plan;
     });
+    const dbDuration = (Date.now() - dbStart) / 1000;
+    dbTransactionDurationSeconds.observe({ operation: 'createPlan', table: 'StudyPlan' }, dbDuration);
 
     logger.stateChange(func, "StudyPlan Created", null, { planId: studyPlan.id });
+
+    const totalDuration = (Date.now() - start) / 1000;
+    planGenerationDurationSeconds.observe({ status: 'success' }, totalDuration);
 
     return {
       planId: studyPlan.id,
       plan: this.scheduleResultToJson(scheduleResult),
       metadata: scheduleResult.metadata,
     };
+    } catch (error) {
+      const totalDuration = (Date.now() - start) / 1000;
+      planGenerationDurationSeconds.observe({ status: 'failure' }, totalDuration);
+      throw error;
+    }
   }
 
   // ─── GET PLAN ───────────────────────────────────────────────────
@@ -211,21 +231,39 @@ export class StudyPlanService {
     const func = "updatePlanById";
     logger.entry(func, { id, updateData });
 
-    const studyPlan = await this.prisma.studyPlan.update({
+    // Fetch current version for optimistic locking
+    const currentPlan = await this.prisma.studyPlan.findUnique({
       where: { id },
-      data: {
-        ...(updateData.examName !== undefined && { examName: updateData.examName }),
-        ...(updateData.subjects && { subjects: updateData.subjects }),
-        ...(updateData.availableHoursPerDay && { availableHoursPerDay: updateData.availableHoursPerDay }),
-        ...(updateData.preferredStartTime && { preferredStartTime: updateData.preferredStartTime }),
-        ...(updateData.targetCompletionDate && {
-          targetCompletionDate: new Date(updateData.targetCompletionDate),
-        }),
-      },
+      select: { version: true },
     });
 
-    logger.exit(func, { id });
-    return studyPlan;
+    if (!currentPlan) {
+      throw new Error("Study plan not found");
+    }
+
+    try {
+      const studyPlan = await this.prisma.studyPlan.update({
+        where: { id, version: currentPlan.version },
+        data: {
+          ...(updateData.examName !== undefined && { examName: updateData.examName }),
+          ...(updateData.subjects && { subjects: updateData.subjects }),
+          ...(updateData.availableHoursPerDay && { availableHoursPerDay: updateData.availableHoursPerDay }),
+          ...(updateData.preferredStartTime && { preferredStartTime: updateData.preferredStartTime }),
+          ...(updateData.targetCompletionDate && {
+            targetCompletionDate: new Date(updateData.targetCompletionDate),
+          }),
+          version: { increment: 1 },
+        },
+      });
+
+      logger.exit(func, { id });
+      return studyPlan;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new Error('Optimistic Lock Error: Plan has been updated by another process.');
+      }
+      throw error;
+    }
   }
 
   // ─── DELETE PLAN ────────────────────────────────────────────────
@@ -459,24 +497,41 @@ export class StudyPlanService {
     );
 
     // Transaction
-    await this.prisma.$transaction(async (tx) => {
-      await tx.studySession.deleteMany({
-        where: {
-          studyPlanId,
-          date: { gte: tomorrowMidnight },
-        },
-      });
+    const dbStart = Date.now();
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Clear old sessions
+        await tx.studySession.deleteMany({
+          where: {
+            studyPlanId,
+            date: { gte: tomorrowMidnight },
+          },
+        });
 
-      const sessionData = this.scheduleResultToSessions(studyPlanId, scheduleResult);
-      if (sessionData.length > 0) {
-        await tx.studySession.createMany({ data: sessionData });
+        // Add new sessions
+        const sessionData = this.scheduleResultToSessions(studyPlanId, scheduleResult);
+        if (sessionData.length > 0) {
+          await tx.studySession.createMany({ data: sessionData });
+        }
+
+        // Update plan with new schedule and optimistic locking
+        // Using version from initial read to ensure no concurrent modifications occurred
+        await tx.studyPlan.update({
+          where: { id: studyPlanId, version: plan.version },
+          data: {
+            plan: this.scheduleResultToJson(scheduleResult),
+            version: { increment: 1 }
+          },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new Error('Optimistic Lock Error: Plan has been modified during rescheduling.');
       }
-
-      await tx.studyPlan.update({
-        where: { id: studyPlanId },
-        data: { plan: this.scheduleResultToJson(scheduleResult) },
-      });
-    });
+      throw error;
+    }
+    const dbDuration = (Date.now() - dbStart) / 1000;
+    dbTransactionDurationSeconds.observe({ operation: 'reschedule', table: 'StudyPlan' }, dbDuration);
 
     logger.stateChange(func, "Schedule Regenerated", null, {
       studyPlanId,
