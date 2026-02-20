@@ -46,11 +46,29 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Prometheus Metrics Endpoint
+// Prometheus Metrics Endpoint (Protected)
 app.get('/metrics', async (req: Request, res: Response) => {
   try {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      res.set('WWW-Authenticate', 'Basic realm="Metrics"');
+      return res.status(401).send('Authentication required');
+    }
+
+    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    const user = auth[0];
+    const pass = auth[1];
+
+    const metricsUser = process.env.METRICS_USER || 'metrics';
+    const metricsPass = process.env.METRICS_PASSWORD || 'admin'; // Default for dev, should be overridden in prod
+
+    if (user === metricsUser && pass === metricsPass) {
+      res.set('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } else {
+      res.set('WWW-Authenticate', 'Basic realm="Metrics"');
+      res.status(401).send('Invalid credentials');
+    }
   } catch (err) {
     res.status(500).end(err);
   }

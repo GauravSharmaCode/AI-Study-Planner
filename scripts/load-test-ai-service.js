@@ -28,7 +28,10 @@ async function main() {
 
   // Check Metrics
   try {
-    const res = await fetch(`${SERVICE_URL}/metrics`);
+    const auth = Buffer.from('metrics:admin').toString('base64');
+    const res = await fetch(`${SERVICE_URL}/metrics`, {
+        headers: { 'Authorization': `Basic ${auth}` }
+    });
     const text = await res.text();
     console.log('Metrics retrieved. Length:', text.length);
 
