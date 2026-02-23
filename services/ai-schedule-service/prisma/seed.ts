@@ -33,8 +33,8 @@ async function main() {
   const plan = await prisma.studyPlan.create({
     data: {
       userId,
-      examName: 'JEE Advanced 2025',
-      targetCompletionDate: new Date('2025-05-25T00:00:00Z'),
+      examName: 'JEE Advanced 2026',
+      targetCompletionDate: new Date('2026-05-25T00:00:00Z'),
       availableHoursPerDay: 6,
       preferredStartTime: '06:00',
       status: PlanStatus.ACTIVE,
@@ -114,7 +114,7 @@ async function main() {
       data: {
         userId: uid,
         examName: `Mock Exam ${i}`,
-        targetCompletionDate: new Date('2025-12-31T00:00:00Z'),
+        targetCompletionDate: new Date('2026-12-31T00:00:00Z'),
         availableHoursPerDay: 4,
         status: PlanStatus.ACTIVE
       }
