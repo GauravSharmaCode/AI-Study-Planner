@@ -27,5 +27,6 @@ model User {
   @@index([isActive])
   @@index([role, isActive])
   @@index([createdAt])
+  @@index([phone])
   @@map("users")
 }
