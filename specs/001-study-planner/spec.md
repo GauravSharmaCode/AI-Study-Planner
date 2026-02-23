@@ -1,7 +1,7 @@
 # Feature Specification: Deterministic Study Planner & Scheduling Engine
 
 **Feature Branch**: `001-study-planner`
-**Created**: 2024-05-22
+**Created**: 2026-02-22
 **Status**: Draft
 **Input**: User description: "Production-grade AI-powered study scheduling backend built using a microservices architecture."
 
