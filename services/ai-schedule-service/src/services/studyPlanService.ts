@@ -557,45 +557,67 @@ export class StudyPlanService {
     const func = "getCoverageAnalytics";
     logger.entry(func, { studyPlanId });
 
+    // Optimization: Fetch plan only (no sessions) and use DB aggregation
     const plan = await this.prisma.studyPlan.findUnique({
       where: { id: studyPlanId },
-      include: { sessions: true },
     });
 
     if (!plan) throw new Error(`Study plan not found: ${studyPlanId}`);
+
+    // DB Aggregation using raw SQL for performance
+    // Define the expected shape of the raw query result
+    interface RawAnalytics {
+      total_sessions: bigint;
+      total_planned_minutes: bigint | null;
+      completed_sessions: bigint | null;
+      skipped_sessions: bigint | null;
+      partial_sessions: bigint | null;
+      pending_sessions: bigint | null;
+      total_completed_minutes: bigint | null;
+    }
+
+    const statsResult = await this.prisma.$queryRaw<RawAnalytics[]>`
+      SELECT
+        COUNT(*) as total_sessions,
+        SUM("plannedMinutes") as total_planned_minutes,
+        SUM(CASE WHEN "status" = 'completed' THEN 1 ELSE 0 END) as completed_sessions,
+        SUM(CASE WHEN "status" = 'skipped' THEN 1 ELSE 0 END) as skipped_sessions,
+        SUM(CASE WHEN "status" = 'partial' THEN 1 ELSE 0 END) as partial_sessions,
+        SUM(CASE WHEN "status" = 'pending' THEN 1 ELSE 0 END) as pending_sessions,
+        SUM(CASE
+          WHEN "status" = 'completed' THEN COALESCE("completedMinutes", "plannedMinutes")
+          WHEN "status" = 'partial' THEN COALESCE("completedMinutes", 0)
+          ELSE 0
+        END) as total_completed_minutes
+      FROM "study_sessions"
+      WHERE "studyPlanId" = ${studyPlanId}
+    `;
+
+    const stats: RawAnalytics = statsResult[0] || {
+      total_sessions: BigInt(0),
+      total_planned_minutes: BigInt(0),
+      completed_sessions: BigInt(0),
+      skipped_sessions: BigInt(0),
+      partial_sessions: BigInt(0),
+      pending_sessions: BigInt(0),
+      total_completed_minutes: BigInt(0),
+    };
+
+    // Helper to safely convert BigInt/null to Number
+    const toNumber = (val: bigint | null | undefined) => val ? Number(val) : 0;
+
+    const totalSessions = toNumber(stats.total_sessions);
+    const totalPlannedMinutes = toNumber(stats.total_planned_minutes);
+    const completedSessions = toNumber(stats.completed_sessions);
+    const skippedSessions = toNumber(stats.skipped_sessions);
+    const partialSessions = toNumber(stats.partial_sessions);
+    const pendingSessions = toNumber(stats.pending_sessions);
+    const totalCompletedMinutes = toNumber(stats.total_completed_minutes);
 
     const now = new Date();
     const daysRemaining = Math.max(0, Math.floor(
       (plan.targetCompletionDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
     ));
-
-    let completedSessions = 0;
-    let skippedSessions = 0;
-    let partialSessions = 0;
-    let pendingSessions = 0;
-    let totalPlannedMinutes = 0;
-    let totalCompletedMinutes = 0;
-
-    for (const session of plan.sessions) {
-      totalPlannedMinutes += session.plannedMinutes;
-
-      switch (session.status) {
-        case 'completed':
-          completedSessions++;
-          totalCompletedMinutes += session.completedMinutes ?? session.plannedMinutes;
-          break;
-        case 'skipped':
-          skippedSessions++;
-          break;
-        case 'partial':
-          partialSessions++;
-          totalCompletedMinutes += session.completedMinutes ?? 0;
-          break;
-        default:
-          pendingSessions++;
-          break;
-      }
-    }
 
     const completionPercentage = totalPlannedMinutes > 0
       ? Math.round((totalCompletedMinutes / totalPlannedMinutes) * 100)
@@ -606,7 +628,7 @@ export class StudyPlanService {
     const isAtRisk = remainingWorkloadMinutes > remainingCapacity;
 
     const result = {
-      totalSessions: plan.sessions.length,
+      totalSessions,
       completedSessions,
       skippedSessions,
       partialSessions,
