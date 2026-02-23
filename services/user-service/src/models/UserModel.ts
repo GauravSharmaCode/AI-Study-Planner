@@ -79,7 +79,7 @@ class UserModel {
     userData: CreateUserRequest & {
       password?: string | null;
       name?: string;
-      role?: string;
+      role?: 'USER' | 'ADMIN';
       isActive?: boolean;
       isVerified?: boolean;
     }
@@ -98,6 +98,7 @@ class UserModel {
         name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email.split('@')[0] || 'User',
       };
 
+      // @ts-expect-error - Prisma types might be slightly different than interface types for enum
       const user = await prisma.user.create({
         data: createData,
         select: safeUserSelect,

@@ -7,49 +7,118 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// AI Schedule Service - MVP Deterministic Engine Schema
-model StudyPlan {
-  id                    String   @id @default(uuid())
-  userId                String   // Reference to User service (no FK constraint)
-  examName              String?  // Optional exam name (e.g., "JEE Mains 2026")
-  subjects              String[] // ["Math", "Physics"]
-  availableHoursPerDay  Int      // 4
-  preferredStartTime    String   @default("08:00") // HH:mm format
-  targetCompletionDate  DateTime // Exam/target date
-  plan                  Json     // Generated deterministic schedule snapshot
-  isActive              Boolean  @default(true)
-  version               Int      @default(0) // Optimistic locking
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+// --------------------------------------------------------
+// STUDY PLAN AGGREGATE
+// --------------------------------------------------------
 
-  sessions StudySession[]
+model StudyPlan {
+  id                    String      @id @default(uuid())
+  userId                String      // Reference to User Service ID
+
+  examName              String?
+  targetCompletionDate  DateTime    // UTC Midnight
+  startDate             DateTime    @default(now()) // UTC Midnight
+
+  availableHoursPerDay  Int         // Constraint: Max daily study time
+  preferredStartTime    String      @default("08:00") // HH:mm format
+
+  status                PlanStatus  @default(ACTIVE)
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  topics                Topic[]
+  sessions              StudySession[]
 
   @@index([userId])
-  @@index([userId, createdAt])
+  @@index([status])
   @@map("study_plans")
 }
 
-model StudySession {
-  id               String   @id @default(uuid())
-  studyPlanId      String
-  date             DateTime // Day of the session (UTC)
-  topic            String   // "Algebra"
-  startTime        String   // "09:00"
-  endTime          String   // "10:30"
-  plannedMinutes   Int      // Duration allocated by the engine
-  completedMinutes Int?     // Actual minutes completed (null = not tracked)
-  isRevision       Boolean  @default(false) // true for spaced-revision sessions
-  status           String   @default("pending") // "pending", "completed", "skipped", "partial"
-  remarks          String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+enum PlanStatus {
+  ACTIVE
+  COMPLETED
+  FAILED      // Overload or technical failure
+  ARCHIVED
+}
 
-  studyPlan StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+// --------------------------------------------------------
+// TOPIC METADATA
+// --------------------------------------------------------
+
+model Topic {
+  id                    String      @id @default(uuid())
+  studyPlanId           String
+  studyPlan             StudyPlan   @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+
+  subject               String      // e.g., "Mathematics"
+  name                  String      // e.g., "Calculus: Limits"
+
+  difficulty            Int         @default(3) // 1-5 Scale (Heuristic for scheduling weight)
+  estimatedMinutes      Int         // Total required time (AI estimated or user provided)
+
+  completedMinutes      Int         @default(0) // Aggregated from completed sessions
+
+  status                TopicStatus @default(PENDING)
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  sessions              StudySession[]
 
   @@index([studyPlanId])
-  @@index([date])
-  @@index([status])
-  @@index([studyPlanId, status])
-  @@index([studyPlanId, date])
+  @@map("topics")
+}
+
+enum TopicStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+// --------------------------------------------------------
+// SCHEDULED SESSIONS
+// --------------------------------------------------------
+
+model StudySession {
+  id               String        @id @default(uuid())
+  studyPlanId      String
+  studyPlan        StudyPlan     @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+
+  topicId          String?
+  topic            Topic?        @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  date             DateTime      // UTC Midnight of the scheduled day
+  startTime        String        // "HH:mm" (24h)
+  endTime          String        // "HH:mm" (24h)
+  durationMinutes  Int           // Planned duration
+
+  isRevision       Boolean       @default(false)
+  revisionType     RevisionType? // NEW_TOPIC vs SPACED_REPETITION
+
+  status           SessionStatus @default(PENDING)
+
+  completedMinutes Int?          // Actual time logged by user
+  remarks          String?       // User notes
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([studyPlanId, date])    // Critical for fetching daily schedule
+  @@index([studyPlanId, status])  // Critical for analytics & rescheduling
   @@map("study_sessions")
+}
+
+enum SessionStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+  PARTIAL
+}
+
+enum RevisionType {
+  NEW_TOPIC
+  REV_3_DAYS
+  REV_7_DAYS
+  REV_14_DAYS
 }
