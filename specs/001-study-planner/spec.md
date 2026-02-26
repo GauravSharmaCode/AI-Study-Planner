@@ -7,7 +7,7 @@
 
 ## User Scenarios & Testing
 
-### User Story 1 - Create Study Plan (Priority: P1)
+### US1: Create Study Plan (Priority: P1)
 
 As a student, I want to input my exam date, available hours, and subjects so that I can get a balanced, deterministic study schedule.
 
@@ -23,7 +23,7 @@ As a student, I want to input my exam date, available hours, and subjects so tha
 
 ---
 
-### User Story 2 - Track Session Completion (Priority: P1)
+### US2: Track Session Completion (Priority: P1)
 
 As a student, I want to mark sessions as completed, skipped, or partially done so that I can track my progress.
 
@@ -38,7 +38,7 @@ As a student, I want to mark sessions as completed, skipped, or partially done s
 
 ---
 
-### User Story 3 - Adaptive Rescheduling (Priority: P2)
+### US3: Adaptive Rescheduling (Priority: P2)
 
 As a student, I want my schedule to automatically adjust when I miss a session, so that I stay on track without extending my exam date.
 
@@ -50,11 +50,11 @@ As a student, I want my schedule to automatically adjust when I miss a session, 
 
 1. **Given** a plan with a skipped session, **When** the rescheduling job runs, **Then** the skipped topic is re-allocated to future available slots.
 2. **Given** a rescheduling event, **When** the new workload exceeds daily capacity, **Then** the system marks the plan as "At Risk" (or fails gracefully per business rule) but does NOT extend the exam date.
-3. **Given** a rescheduling event, **When** processed, **Then** all future sessions are deleted and recreated, while past/completed sessions remain untouched.
+3. **Given** a rescheduling event, **When** processed, **Then** all future sessions (scheduled for tomorrow or later) are deleted and recreated, while today's and past/completed sessions remain untouched.
 
 ---
 
-### User Story 4 - View Analytics (Priority: P3)
+### US4: View Analytics (Priority: P3)
 
 As a student, I want to see my study coverage and risk level so that I can adjust my effort.
 
@@ -87,7 +87,7 @@ As a student, I want to see my study coverage and risk level so that I can adjus
 - **FR-007**: Rescheduling MUST recalculate remaining workload and redistribute it evenly.
 - **FR-008**: Rescheduling MUST NEVER extend the exam date or modify past sessions.
 - **FR-009**: System MUST reject plan generation if workload exceeds capacity (Overload protection).
-- **FR-010**: System MUST provide analytics: Coverage %, Remaining workload, Risk score, Study velocity.
+- **FR-010**: System MUST provide analytics: Coverage %, Remaining workload, Risk score, Study velocity (Sessions completed / days elapsed).
 
 ### Non-Functional Requirements
 
@@ -98,7 +98,7 @@ As a student, I want to see my study coverage and risk level so that I can adjus
 - **NFR-005 (Reliability)**: AI call timeout ≤8s, Circuit breaker, Exponential backoff retry.
 - **NFR-006 (Reliability)**: Dead-letter queue for failed reschedules.
 - **NFR-007 (Reliability)**: Idempotent job deduplication by `planId`.
-- **NFR-008 (Security)**: JWT authentication, RBAC, Zod input validation.
+- **NFR-008 (Security)**: JWT authentication, RBAC (Roles: STUDENT, ADMIN), Zod input validation on all request envelopes (body, params, query).
 - **NFR-009 (Performance)**: Plan generation < 2s (excluding AI), Reschedule < 3s (≤150 topics).
 - **NFR-010 (Concurrency)**: Support 10k concurrent active users.
 
@@ -107,14 +107,14 @@ As a student, I want to see my study coverage and risk level so that I can adjus
 - **User**: Managed by User Service.
 - **StudyPlan**: The overarching configuration (exam date, subjects) and aggregate state.
 - **StudySession**: Individual time blocks (Topic X, Start, End, Status).
-- **Topic**: (Implicit or Explicit) Metadata about the subject matter (Difficulty, Estimated Duration).
+- **Topic**: Metadata about the subject matter (Difficulty, Estimated Duration). Explicit, persisted entity in DB.
 
 ## Success Criteria
 
 ### Measurable Outcomes
 
-- **SC-001**: Plan generation latency is under 2 seconds (excluding external AI latency).
+- **SC-001**: Plan generation latency meets NFR-009 requirements.
 - **SC-002**: 100% of generated schedules have ZERO overlapping sessions.
-- **SC-003**: Rescheduling completes in under 3 seconds for plans with ≤150 topics.
+- **SC-003**: Rescheduling meets NFR-009 performance targets.
 - **SC-004**: System successfully handles a simulated load of 10k concurrent active users.
 - **SC-005**: 100% of failed AI calls are handled via retry/circuit breaker without crashing the service.
