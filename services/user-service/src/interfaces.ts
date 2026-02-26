@@ -1,6 +1,11 @@
 // User Service - TypeScript Interfaces
 // Domain-specific types for user management
 
+export enum UserRole {
+  USER = 'USER',
+  ADMIN = 'ADMIN'
+}
+
 export interface User {
   id: string;
   email: string;
@@ -11,7 +16,7 @@ export interface User {
   password?: string | null; // Include password for internal operations
   isActive: boolean;
   isVerified: boolean;
-  role: string;
+  role: UserRole;
   lastLoginAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -47,7 +52,7 @@ export interface UserResponse {
   phone?: string;
   isActive: boolean;
   isVerified: boolean;
-  role: string;
+  role: UserRole;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -91,6 +96,7 @@ export interface ApiError {
   status: 'error' | 'fail';
   message: string;
   statusCode: number;
+  isLoading?: boolean;
 }
 
 export interface HealthResponse {
