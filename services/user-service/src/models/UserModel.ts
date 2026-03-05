@@ -79,10 +79,10 @@ class UserModel {
     userData: CreateUserRequest & {
       password?: string | null;
       name?: string;
-      role?: 'USER' | 'ADMIN';
+      role?: "USER" | "ADMIN";
       isActive?: boolean;
       isVerified?: boolean;
-    }
+    },
   ): Promise<UserResponse> {
     const func = "UserModel.create";
     try {
@@ -95,10 +95,13 @@ class UserModel {
       // Ensure name is set - combine firstName and lastName if name not provided
       const createData = {
         ...userData,
-        name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email.split('@')[0] || 'User',
+        name:
+          userData.name ||
+          `${userData.firstName || ""} ${userData.lastName || ""}`.trim() ||
+          userData.email.split("@")[0] ||
+          "User",
       };
 
-      // @ts-expect-error - Prisma types might be slightly different than interface types for enum
       const user = await prisma.user.create({
         data: createData,
         select: safeUserSelect,
@@ -111,7 +114,7 @@ class UserModel {
       });
 
       // Convert dates to strings for response
-      return convertToUserResponse(user);
+      return convertToUserResponse(user as unknown as User);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -132,7 +135,7 @@ class UserModel {
    */
   async findById(
     userId: string,
-    includeDeleted: boolean = false
+    includeDeleted: boolean = false,
   ): Promise<UserResponse | null> {
     const func = "UserModel.findById";
     try {
@@ -160,7 +163,7 @@ class UserModel {
         });
 
         // Convert dates to strings for response
-        return convertToUserResponse(user);
+        return convertToUserResponse(user as unknown as User);
       }
 
       return null;
@@ -186,7 +189,7 @@ class UserModel {
   async findByEmail(
     email: string,
     includePassword: boolean = false,
-    includeDeleted: boolean = false
+    includeDeleted: boolean = false,
   ): Promise<User | null> {
     const func = "UserModel.findByEmail";
     try {
@@ -218,7 +221,7 @@ class UserModel {
         });
       }
 
-      return user as User | null;
+      return user as unknown as User | null;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -346,7 +349,9 @@ class UserModel {
       });
 
       // Convert dates to strings for response
-      const userResponses: UserResponse[] = users.map((user) => convertToUserResponse(user as User));
+      const userResponses: UserResponse[] = users.map((user) =>
+        convertToUserResponse(user as unknown as User),
+      );
 
       const totalPages = Math.ceil(total / limit);
       const hasNext = page < totalPages;
@@ -391,7 +396,7 @@ class UserModel {
    */
   async update(
     userId: string,
-    updateData: UpdateUserRequest
+    updateData: UpdateUserRequest,
   ): Promise<UserResponse | null> {
     const func = "UserModel.update";
     try {
@@ -414,7 +419,7 @@ class UserModel {
       });
 
       // Convert dates to strings for response
-      return convertToUserResponse(user);
+      return convertToUserResponse(user as unknown as User);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -458,7 +463,7 @@ class UserModel {
       });
 
       // Convert dates to strings for response
-      return convertToUserResponse(user);
+      return convertToUserResponse(user as unknown as User);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";

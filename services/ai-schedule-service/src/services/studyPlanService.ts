@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, SessionStatus } from "@prisma/client";
 import { AIAPIClient } from './ai-api-client';
 import { createLogger } from "../utils/logger";
 import { prisma } from '../config/database';
@@ -26,7 +26,7 @@ export interface CreatePlanRequest {
 }
 
 export interface UpdateSessionStatusRequest {
-  status: 'pending' | 'completed' | 'skipped' | 'partial';
+  status: 'PENDING' | 'COMPLETED' | 'SKIPPED' | 'PARTIAL';
   completedMinutes?: number;
   remarks?: string;
 }
@@ -119,7 +119,7 @@ export class StudyPlanService {
       // Deactivate any existing active plans for this user (Single Active Plan Rule)
       await tx.studyPlan.updateMany({
         where: { userId: data.userId, isActive: true },
-        data: { isActive: false },
+        data: { isActive: false, status: 'ARCHIVED' },
       });
 
       // Create the study plan
@@ -133,6 +133,7 @@ export class StudyPlanService {
           targetCompletionDate: targetDate,
           plan: this.scheduleResultToJson(scheduleResult),
           isActive: true,
+          status: 'ACTIVE',
         },
       });
 
@@ -212,7 +213,7 @@ export class StudyPlanService {
       where: { userId, isActive: true },
       include: { sessions: { orderBy: { date: 'asc' } } },
       orderBy: { createdAt: 'desc' },
-    });
+    }) as any;
   }
 
   // ─── UPDATE PLAN ────────────────────────────────────────────────
@@ -241,29 +242,28 @@ export class StudyPlanService {
       throw new Error("Study plan not found");
     }
 
-    try {
-      const studyPlan = await this.prisma.studyPlan.update({
-        where: { id, version: currentPlan.version },
-        data: {
-          ...(updateData.examName !== undefined && { examName: updateData.examName }),
-          ...(updateData.subjects && { subjects: updateData.subjects }),
-          ...(updateData.availableHoursPerDay && { availableHoursPerDay: updateData.availableHoursPerDay }),
-          ...(updateData.preferredStartTime && { preferredStartTime: updateData.preferredStartTime }),
-          ...(updateData.targetCompletionDate && {
-            targetCompletionDate: new Date(updateData.targetCompletionDate),
-          }),
-          version: { increment: 1 },
-        },
-      });
+    // Optimistic locking: update only if version hasn't changed
+    const updateResult = await this.prisma.studyPlan.updateMany({
+      where: { id, version: currentPlan.version },
+      data: {
+        ...(updateData.examName !== undefined && { examName: updateData.examName }),
+        ...(updateData.subjects && { subjects: updateData.subjects }),
+        ...(updateData.availableHoursPerDay && { availableHoursPerDay: updateData.availableHoursPerDay }),
+        ...(updateData.preferredStartTime && { preferredStartTime: updateData.preferredStartTime }),
+        ...(updateData.targetCompletionDate && {
+          targetCompletionDate: new Date(updateData.targetCompletionDate),
+        }),
+        version: { increment: 1 },
+      },
+    });
 
-      logger.exit(func, { id });
-      return studyPlan;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        throw new Error('Optimistic Lock Error: Plan has been updated by another process.');
-      }
-      throw error;
+    if (updateResult.count === 0) {
+      throw new Error('Optimistic Lock Error: Plan has been updated by another process.');
     }
+
+    const studyPlan = await this.prisma.studyPlan.findUnique({ where: { id } });
+    logger.exit(func, { id });
+    return studyPlan;
   }
 
   // ─── DELETE PLAN ────────────────────────────────────────────────
@@ -301,7 +301,7 @@ export class StudyPlanService {
 
     await this.prisma.studyPlan.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, status: 'ARCHIVED' },
     });
 
     logger.exit(func, { id });
@@ -328,8 +328,8 @@ export class StudyPlanService {
 
     logger.entry(func, { sessionId, status });
 
-    if (!['pending', 'completed', 'skipped', 'partial'].includes(status)) {
-      throw new Error('Invalid status. Must be: pending, completed, skipped, or partial');
+    if (!['PENDING', 'COMPLETED', 'SKIPPED', 'PARTIAL'].includes(status)) {
+      throw new Error('Invalid status. Must be: PENDING, COMPLETED, SKIPPED, or PARTIAL');
     }
 
     const session = await this.prisma.studySession.update({
@@ -342,7 +342,7 @@ export class StudyPlanService {
     });
 
     // Trigger async rescheduling for skipped or partial sessions
-    if (status === 'skipped' || status === 'partial') {
+    if (status === 'SKIPPED' || status === 'PARTIAL') {
       logger.info('Session status triggers rescheduling', {
         func,
         sessionId,
@@ -408,9 +408,9 @@ export class StudyPlanService {
         sessions: {
           where: {
             OR: [
-              { status: 'skipped' },
-              { status: 'partial', completedMinutes: { not: null } },
-              { status: 'pending', date: { gte: tomorrowMidnight } },
+              { status: 'SKIPPED' },
+              { status: 'PARTIAL', completedMinutes: { not: null } },
+              { status: 'PENDING', date: { gte: tomorrowMidnight } },
             ],
           },
         },
@@ -427,14 +427,14 @@ export class StudyPlanService {
     const topicWorkload = new Map<string, { studyMinutes: number; revisionMinutes: number; subject: string }>();
 
     for (const session of plan.sessions) {
-      if (session.status === 'completed') continue;
+      if (session.status === 'COMPLETED') continue;
 
       let unfinishedMinutes: number;
-      if (session.status === 'partial' && session.completedMinutes != null) {
+      if (session.status === 'PARTIAL' && session.completedMinutes != null) {
         unfinishedMinutes = session.plannedMinutes - session.completedMinutes;
-      } else if (session.status === 'skipped') {
+      } else if (session.status === 'SKIPPED') {
         unfinishedMinutes = session.plannedMinutes;
-      } else if (session.status === 'pending' && session.date >= tomorrowMidnight) {
+      } else if (session.status === 'PENDING' && session.date >= tomorrowMidnight) {
         unfinishedMinutes = session.plannedMinutes;
       } else {
         continue;
@@ -515,14 +515,20 @@ export class StudyPlanService {
         }
 
         // Update plan with new schedule and optimistic locking
-        // Using version from initial read to ensure no concurrent modifications occurred
-        await tx.studyPlan.update({
+        // Using updateMany with version filter — if count is 0, a concurrent write happened
+        const rescheduleUpdate = await tx.studyPlan.updateMany({
           where: { id: studyPlanId, version: plan.version },
           data: {
             plan: this.scheduleResultToJson(scheduleResult),
-            version: { increment: 1 }
+            version: { increment: 1 },
           },
         });
+        if (rescheduleUpdate.count === 0) {
+          throw new Prisma.PrismaClientKnownRequestError(
+            'Optimistic lock conflict during reschedule',
+            { code: 'P2025', clientVersion: '' }
+          );
+        }
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -704,21 +710,23 @@ export class StudyPlanService {
     studyPlanId: string;
     date: Date;
     topic: string;
+    subject: string | null;
     startTime: string;
     endTime: string;
     plannedMinutes: number;
     isRevision: boolean;
-    status: string;
+    status: SessionStatus;
   }> {
     const sessions: Array<{
       studyPlanId: string;
       date: Date;
       topic: string;
+      subject: string | null;
       startTime: string;
       endTime: string;
       plannedMinutes: number;
       isRevision: boolean;
-      status: string;
+      status: SessionStatus;
     }> = [];
 
     for (const day of result.days) {
@@ -727,11 +735,12 @@ export class StudyPlanService {
           studyPlanId,
           date: day.date,
           topic: block.topic,
+          subject: block.subject ?? null,
           startTime: block.startTime,
           endTime: block.endTime,
           plannedMinutes: block.plannedMinutes,
           isRevision: block.isRevision,
-          status: 'pending',
+          status: SessionStatus.PENDING,
         });
       }
     }

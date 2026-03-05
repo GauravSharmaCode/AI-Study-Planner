@@ -16,6 +16,7 @@ model StudyPlan {
   userId                String      // Reference to User Service ID
 
   examName              String?
+  subjects              String[]    // e.g. ["Mathematics", "Physics"]
   targetCompletionDate  DateTime    // UTC Midnight
   startDate             DateTime    @default(now()) // UTC Midnight
 
@@ -23,6 +24,10 @@ model StudyPlan {
   preferredStartTime    String      @default("08:00") // HH:mm format
 
   status                PlanStatus  @default(ACTIVE)
+  isActive              Boolean     @default(true)  // Single Active Plan Rule
+  version               Int         @default(1)     // Optimistic locking
+
+  plan                  Json?       // Serialized ScheduleResult snapshot
 
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
@@ -31,6 +36,7 @@ model StudyPlan {
   sessions              StudySession[]
 
   @@index([userId])
+  @@index([userId, isActive])
   @@index([status])
   @@map("study_plans")
 }
@@ -85,13 +91,16 @@ model StudySession {
   studyPlanId      String
   studyPlan        StudyPlan     @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
 
-  topicId          String?
-  topic            Topic?        @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  topicId          String?       // Optional FK to Topic (set post-create)
+  topicRef         Topic?        @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  topic            String        // Denormalized topic name for quick access
+  subject          String?       // Denormalized subject name
 
   date             DateTime      // UTC Midnight of the scheduled day
   startTime        String        // "HH:mm" (24h)
   endTime          String        // "HH:mm" (24h)
-  durationMinutes  Int           // Planned duration
+  plannedMinutes   Int           // Planned duration (renamed from durationMinutes)
 
   isRevision       Boolean       @default(false)
   revisionType     RevisionType? // NEW_TOPIC vs SPACED_REPETITION
