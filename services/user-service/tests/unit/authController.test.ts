@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import * as bcrypt from "bcryptjs";
+import * as jwt from "jsonwebtoken";
 import { register, login } from "../../src/controllers/authController";
+import { UserRole } from "../../src/interfaces";
 import UserService from "../../src/services/UserService";
 
 // Mock dependencies
@@ -51,7 +52,7 @@ describe("Auth Controller Functions", () => {
         lastName: "Doe",
         isActive: true,
         isVerified: false,
-        role: "user",
+        role: UserRole.USER,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -114,7 +115,7 @@ describe("Auth Controller Functions", () => {
         email: "test@example.com",
         isActive: true,
         isVerified: false,
-        role: "user",
+        role: UserRole.USER,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -159,7 +160,7 @@ describe("Auth Controller Functions", () => {
         lastName: "Doe",
         isActive: true,
         isVerified: false,
-        role: "user",
+        role: UserRole.USER,
       };
       const mockToken = "jwt-token-123";
 
