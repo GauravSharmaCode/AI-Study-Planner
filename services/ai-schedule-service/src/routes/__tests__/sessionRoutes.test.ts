@@ -1,3 +1,6 @@
+// Mock environment variables needed for module instantiation
+process.env.GOOGLE_GENAI_API_KEY = 'test-api-key';
+
 import sessionRoutes from '../sessionRoutes';
 import { protect } from '../../middleware/auth';
 
