@@ -1,4 +1,3 @@
-import express from 'express';
 import sessionRoutes from '../sessionRoutes';
 import { protect } from '../../middleware/auth';
 
@@ -7,6 +6,7 @@ describe('Session Routes', () => {
         // Find the middleware in the router stack
         // Express router stack items have a handle property which is the middleware function
         const protectMiddleware = sessionRoutes.stack.find(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (layer: any) => layer.name === 'protect' || layer.handle === protect
         );
 
