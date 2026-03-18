@@ -12,6 +12,7 @@ const router = express.Router();
 // All session routes require authentication
 router.use(protect);
 
+
 /**
  * PATCH /:id/status
  * Update session status (triggers async reschedule for skipped/partial)
