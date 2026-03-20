@@ -1,68 +1,9 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { logWithMeta } from "@gauravsharmacode/neat-logger";
 import config from "../config";
-import type { PrismaLogEvent } from "../interfaces";
-
-/**
- * Prisma middleware to log database queries.
- *
- * When `config.database.logQueries` is `true`, logs database queries with
- * the following information:
- *
- * - `model`: The model name
- * - `action`: The query action (e.g. `findUnique`, `create`, `delete`)
- * - `duration`: The duration of the query in milliseconds
- * - `query`: The query arguments, if any
- *
- * When `config.database.logSlowQueries` is `true`, additionally logs
- * queries that take longer than `config.database.slowQueryThreshold`
- * milliseconds as warnings.
- */
-const queryLogger = () => {
-  return async (
-    params: Prisma.MiddlewareParams,
-    next: (params: Prisma.MiddlewareParams) => Promise<unknown>
-  ) => {
-    const before = Date.now();
-    const result = await next(params);
-    const after = Date.now();
-    const duration = after - before;
-
-    if (config.database.logQueries) {
-      const logData = {
-        model: params.model,
-        action: params.action,
-        duration: `${duration}ms`,
-        query: params.args,
-      };
-
-      if (
-        config.database.logSlowQueries &&
-        duration > config.database.slowQueryThreshold
-      ) {
-        logWithMeta("Slow query detected", {
-          func: "queryLogger",
-          level: "warn",
-          extra: {
-            ...logData,
-            threshold: `${config.database.slowQueryThreshold}ms`,
-          },
-        });
-      } else {
-        logWithMeta("Database query executed", {
-          func: "queryLogger",
-          level: "info",
-          extra: logData,
-        });
-      }
-    }
-
-    return result;
-  };
-};
 
 // Create Prisma client
-const prisma = new PrismaClient({
+const basePrisma = new PrismaClient({
   log: config.isDevelopment
     ? [
         { emit: "event", level: "query" },
@@ -81,11 +22,56 @@ const prisma = new PrismaClient({
   },
 });
 
-// Add query middleware
-prisma.$use(queryLogger());
+/**
+ * Prisma extension to log database queries.
+ * Replaces the deprecated middleware system in Prisma 6.
+ */
+const prisma = basePrisma.$extends({
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }) {
+        const before = Date.now();
+        const result = await query(args);
+        const after = Date.now();
+        const duration = after - before;
 
-// Event listeners for Prisma logs
-prisma.$on("query", (e: Prisma.QueryEvent) => {
+        if (config.database.logQueries) {
+          const logData = {
+            model,
+            action: operation,
+            duration: `${duration}ms`,
+            query: args,
+          };
+
+          if (
+            config.database.logSlowQueries &&
+            duration > config.database.slowQueryThreshold
+          ) {
+            logWithMeta("Slow query detected", {
+              func: "queryLogger",
+              level: "warn",
+              extra: {
+                ...logData,
+                threshold: `${config.database.slowQueryThreshold}ms`,
+              },
+            });
+          } else {
+            logWithMeta("Database query executed", {
+              func: "queryLogger",
+              level: "info",
+              extra: logData,
+            });
+          }
+        }
+
+        return result;
+      },
+    },
+  },
+});
+
+// Event listeners for Prisma logs (must be added to the base client for event emission)
+basePrisma.$on("query" as any, (e: any) => {
   if (config.database.logQueries) {
     logWithMeta("Raw SQL Query", {
       func: "prismaQuery",
@@ -100,37 +86,37 @@ prisma.$on("query", (e: Prisma.QueryEvent) => {
   }
 });
 
-prisma.$on("error", (e: PrismaLogEvent) => {
+basePrisma.$on("error" as any, (e: any) => {
   logWithMeta("Database error", {
     func: "prismaError",
     level: "error",
     extra: {
       target: e.target,
-      message: e.message,
+      message: e.message || "Unknown error",
       timestamp: e.timestamp,
     },
   });
 });
 
-prisma.$on("warn", (e: PrismaLogEvent) => {
+basePrisma.$on("warn" as any, (e: any) => {
   logWithMeta("Database warning", {
     func: "prismaWarn",
     level: "warn",
     extra: {
       target: e.target,
-      message: e.message,
+      message: e.message || "Unknown warning",
       timestamp: e.timestamp,
     },
   });
 });
 
-prisma.$on("info", (e: PrismaLogEvent) => {
+basePrisma.$on("info" as any, (e: any) => {
   logWithMeta("Database info", {
     func: "prismaInfo",
     level: "info",
     extra: {
       target: e.target,
-      message: e.message,
+      message: e.message || "Information",
       timestamp: e.timestamp,
     },
   });
@@ -139,7 +125,8 @@ prisma.$on("info", (e: PrismaLogEvent) => {
 // Connection test
 const testConnection = async (): Promise<void> => {
   try {
-    await prisma.$connect();
+    // Note: use basePrisma for connection lifecycle management
+    await basePrisma.$connect();
     logWithMeta("Database connection established successfully", {
       func: "testConnection",
       level: "info",
@@ -165,7 +152,7 @@ const testConnection = async (): Promise<void> => {
 // Graceful disconnect
 const disconnect = async (): Promise<void> => {
   try {
-    await prisma.$disconnect();
+    await basePrisma.$disconnect();
     logWithMeta("Database connection closed gracefully", {
       func: "disconnect",
       level: "info",
