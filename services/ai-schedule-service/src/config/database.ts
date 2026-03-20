@@ -31,6 +31,7 @@ const queryLogger = () => {
 };
 
 // Create Prisma client with connection pool configuration
+const separator = process.env.DATABASE_URL?.includes("?") ? "&" : "?";
 const prisma = new PrismaClient({
   log:
     process.env.NODE_ENV === "development"
@@ -46,9 +47,7 @@ const prisma = new PrismaClient({
         ],
   datasources: {
     db: {
-      url:
-        process.env.DATABASE_URL +
-        "?connection_limit=10&pool_timeout=20&connect_timeout=10",
+      url: process.env.DATABASE_URL + `${separator}connection_limit=10&pool_timeout=20&connect_timeout=10`,
     },
   },
 });

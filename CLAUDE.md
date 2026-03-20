@@ -12,8 +12,8 @@ AI Study Planner is a microservices architecture built with TypeScript, Express.
 
 ```
 ┌─────────────────┐    ┌─────────────────┐
-│   NGINX Gateway │◄──►│   Port 8080     │
-│   (apps/nginx)  │    │   (Port 8090)   │
+│   NGINX Gateway │◄──►│   Port 8080    │
+│   (apps/nginx)  │    │                 │
 └────────┬────────┘    └─────────────────┘
          │
     ┌────┴────┐
@@ -39,7 +39,7 @@ AI Study Planner is a microservices architecture built with TypeScript, Express.
 
 ### Service Communication
 
-Services communicate via HTTP through the NGINX gateway. The AI Schedule Service validates users by making HTTP calls to the User Service (configured via `USER_SERVICE_URL`). Never import code directly across service boundaries.
+Services communicate via HTTP through the NGINX gateway (port 8080). The AI Schedule Service validates users by making HTTP calls to the User Service (configured via `USER_SERVICE_URL`). Never import code directly across service boundaries.
 
 ### Key Architectural Patterns
 
@@ -50,6 +50,12 @@ Services communicate via HTTP through the NGINX gateway. The AI Schedule Service
 5. **Prisma ORM**: Each service has its own database schema and Prisma client generation.
 
 ## Common Commands
+
+### Prerequisites
+
+- **Node.js**: 20+ (package.json requires `node >=20.0.0`)
+- **Docker** and **Docker Compose**
+- **Google Gemini AI API Key**
 
 ### Installation & Development
 
@@ -62,6 +68,9 @@ npm run build
 
 # Run both services in dev mode concurrently
 npm run dev
+
+# Start all services
+npm run start
 ```
 
 ### Service-Specific Development
@@ -72,12 +81,31 @@ cd services/user-service
 npm run dev        # ts-node-dev with watch
 npm run build      # prisma:generate + tsc
 npm run start      # node dist/index.js
+npm run test       # jest --passWithNoTests
+npm run test:watch # jest --watch --passWithNoTests
+npm run test:coverage # jest --coverage --passWithNoTests
 
 # AI Schedule Service
 cd services/ai-schedule-service
 npm run dev        # ts-node src/index.ts
 npm run build      # prisma generate + tsc
 npm run start      # node dist/index.js
+npm run test       # jest
+npm run test:watch # jest --watch
+npm run test:coverage # jest --coverage
+```
+
+### Running a Single Test
+
+```bash
+# By file path (from service directory)
+npx jest src/path/to/test.test.ts
+
+# By test name pattern
+npx jest -t "should create a user"
+
+# Using npm scripts
+cd services/user-service && npm run test -- -t "create"
 ```
 
 ### Testing

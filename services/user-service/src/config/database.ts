@@ -3,6 +3,7 @@ import { logWithMeta } from "@gauravsharmacode/neat-logger";
 import config from "../config";
 
 // Create Prisma client
+const separator = process.env.DATABASE_URL?.includes("?") ? "&" : "?";
 const basePrisma = new PrismaClient({
   log: config.isDevelopment
     ? [
@@ -17,9 +18,62 @@ const basePrisma = new PrismaClient({
       ],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL + "?connection_limit=10&pool_timeout=20&connect_timeout=10",
+      url: process.env.DATABASE_URL + `${separator}connection_limit=10&pool_timeout=20&connect_timeout=10`,
     },
   },
+});
+
+// Event listeners must be registered on the base client before $extends().
+// (See Prisma docs: listeners added after $extends() are not wired for the extended client.)
+basePrisma.$on("query", (e: Prisma.QueryEvent) => {
+  if (config.database.logQueries) {
+    logWithMeta("Raw SQL Query", {
+      func: "prismaQuery",
+      level: "info",
+      extra: {
+        query: e.query,
+        params: e.params,
+        durationMs: e.duration,
+        target: e.target,
+      },
+    });
+  }
+});
+
+basePrisma.$on("error", (e: Prisma.LogEvent) => {
+  logWithMeta("Database error", {
+    func: "prismaError",
+    level: "error",
+    extra: {
+      target: e.target,
+      message: e.message ?? "Unknown error",
+      timestamp: e.timestamp,
+    },
+  });
+});
+
+basePrisma.$on("warn", (e: Prisma.LogEvent) => {
+  logWithMeta("Database warning", {
+    func: "prismaWarn",
+    level: "warn",
+    extra: {
+      target: e.target,
+      message: e.message ?? "Unknown warning",
+      timestamp: e.timestamp,
+    },
+  });
+});
+
+basePrisma.$on("info", (e: Prisma.LogEvent) => {
+  logWithMeta("Database info", {
+    func: "prismaInfo",
+    level: "info",
+    extra: {
+      target: e.target,
+      message: e.message ?? "Information",
+      timestamp: e.timestamp,
+    },
+  });
 });
 
 /**
@@ -68,58 +122,6 @@ const prisma = basePrisma.$extends({
       },
     },
   },
-});
-
-// Event listeners for Prisma logs (must be added to the base client for event emission)
-basePrisma.$on("query" as any, (e: any) => {
-  if (config.database.logQueries) {
-    logWithMeta("Raw SQL Query", {
-      func: "prismaQuery",
-      level: "info",
-      extra: {
-        query: e.query,
-        params: e.params,
-        durationMs: e.duration,
-        target: e.target,
-      },
-    });
-  }
-});
-
-basePrisma.$on("error" as any, (e: any) => {
-  logWithMeta("Database error", {
-    func: "prismaError",
-    level: "error",
-    extra: {
-      target: e.target,
-      message: e.message || "Unknown error",
-      timestamp: e.timestamp,
-    },
-  });
-});
-
-basePrisma.$on("warn" as any, (e: any) => {
-  logWithMeta("Database warning", {
-    func: "prismaWarn",
-    level: "warn",
-    extra: {
-      target: e.target,
-      message: e.message || "Unknown warning",
-      timestamp: e.timestamp,
-    },
-  });
-});
-
-basePrisma.$on("info" as any, (e: any) => {
-  logWithMeta("Database info", {
-    func: "prismaInfo",
-    level: "info",
-    extra: {
-      target: e.target,
-      message: e.message || "Information",
-      timestamp: e.timestamp,
-    },
-  });
 });
 
 // Connection test
