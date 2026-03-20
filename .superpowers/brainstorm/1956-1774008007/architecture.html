@@ -1,0 +1,47 @@
+<h2>Phase 6: Frontend Daily Companion Architecture</h2>
+<p class="subtitle">System Overview and Data Flow</p>
+
+<div class="mockup">
+  <div class="mockup-header">Technical Stack Overview</div>
+  <div class="mockup-body">
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 250px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+        <h3 style="margin-top: 0;">Frontend Core</h3>
+        <ul>
+          <li><strong>Framework:</strong> Next.js 14+ (App Router)</li>
+          <li><strong>Styling:</strong> Vanilla CSS (Mobile-First)</li>
+          <li><strong>State:</strong> TanStack Query (React Query)</li>
+        </ul>
+      </div>
+      <div style="flex: 1; min-width: 250px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+        <h3 style="margin-top: 0;">Backend Integration</h3>
+        <ul>
+          <li><strong>Gateway:</strong> NGINX (Port 8080)</li>
+          <li><strong>Services:</strong> User Service, AI Schedule Service</li>
+          <li><strong>Auth:</strong> JWT (Bearer Tokens)</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+      <h3>Interactive Flow</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
+        <div style="border: 1px solid #4a9eff; padding: 10px; border-radius: 4px; width: 30%;">User marks session as "Skip"</div>
+        <div style="flex-grow: 1; height: 2px; background: #444; position: relative;">
+          <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: #888;">PATCH /status</div>
+        </div>
+        <div style="border: 1px solid #ff9e4a; padding: 10px; border-radius: 4px; width: 30%;">Backend triggers async Reschedule</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="next" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Continue to Design</h3>
+      <p>I understand the architecture. Let's design the UI.</p>
+    </div>
+  </div>
+</div>

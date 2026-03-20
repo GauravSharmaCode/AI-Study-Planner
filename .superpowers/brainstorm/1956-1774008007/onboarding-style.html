@@ -1,0 +1,42 @@
+<h2>Onboarding Style: The First "Zen" Impression</h2>
+<p class="subtitle">How should we collect the initial exam data?</p>
+
+<div class="split">
+  <div class="option" data-choice="conversational" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Conversational Step-by-Step</h3>
+      <p>Focused, low-anxiety screens that ask one thing at a time. Fits the "Companion" feel.</p>
+      <div class="mockup" style="margin-top:10px; opacity:0.8;">
+        <div class="mockup-header">Step 1 of 4</div>
+        <div class="mockup-body" style="padding:20px; text-align:center;">
+          <p class="label">QUESTION</p>
+          <h2 style="font-size:1.2rem;">What exam are we preparing for?</h2>
+          <input class="mock-input" placeholder="e.g. MCAT Summer 2026" style="margin:20px 0;">
+          <br>
+          <button class="mock-button">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="compact" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Compact Single-Page</h3>
+      <p>Efficient, shows everything needed upfront. Better for "get it done" power users.</p>
+      <div class="mockup" style="margin-top:10px; opacity:0.8;">
+        <div class="mockup-header">Create Study Plan</div>
+        <div class="mockup-body" style="padding:15px;">
+          <label class="label">EXAM NAME</label>
+          <input class="mock-input" style="margin-bottom:10px; width:100%;">
+          <label class="label">TARGET DATE</label>
+          <input class="mock-input" type="date" style="margin-bottom:10px; width:100%;">
+          <label class="label">SUBJECTS</label>
+          <div class="placeholder" style="height:40px; margin-bottom:10px;">Select subjects...</div>
+          <button class="mock-button" style="width:100%;">Generate Schedule</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
