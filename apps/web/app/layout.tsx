@@ -1,4 +1,5 @@
 import React from "react";
+import "./globals.css";
 import { AuthProvider } from "./providers/AuthProvider";
 
 export default function RootLayout({
