@@ -11,7 +11,7 @@ export async function apiFetch(input: any, init: any = {}) {
   return fetch(input, merged);
 }
 
-export async function apiPostJson<T = any>(url: string, body: any) {
+export async function apiPostJson(url: string, body: any): Promise<{ok: boolean; data: any}> {
   const res = await apiFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -21,7 +21,7 @@ export async function apiPostJson<T = any>(url: string, body: any) {
   return { ok: res.ok, data };
 }
 
-export async function apiPutJson<T = any>(url: string, body: any) {
+export async function apiPutJson(url: string, body: any): Promise<{ok: boolean; data: any}> {
   const res = await apiFetch(url, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -31,7 +31,17 @@ export async function apiPutJson<T = any>(url: string, body: any) {
   return { ok: res.ok, data };
 }
 
-export async function apiGetJson<T = any>(url: string) {
+export async function apiPatchJson(url: string, body: any): Promise<{ok: boolean; data: any}> {
+  const res = await apiFetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  return { ok: res.ok, data };
+}
+
+export async function apiGetJson(url: string): Promise<{ok: boolean; data: any}> {
   const res = await apiFetch(url, { method: "GET" });
   const data = await res.json();
   return { ok: res.ok, data };
