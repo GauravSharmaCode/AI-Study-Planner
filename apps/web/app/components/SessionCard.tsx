@@ -42,16 +42,16 @@ export default function SessionCard({
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case "COMPLETED":
-        return "#22c55e";
+        return { backgroundColor: "rgba(34, 197, 94, 0.1)", color: "var(--status-success)" };
       case "PARTIAL":
-        return "#f59e0b";
+        return { backgroundColor: "rgba(245, 158, 11, 0.1)", color: "var(--status-warning)" };
       case "SKIPPED":
-        return "#ef4444";
+        return { backgroundColor: "rgba(239, 68, 68, 0.1)", color: "var(--status-error)" };
       default:
-        return "#6b7280";
+        return { backgroundColor: "var(--bg-primary)", color: "var(--text-secondary)" };
     }
   };
 
@@ -63,112 +63,81 @@ export default function SessionCard({
     return `${h12}:${minutes} ${ampm}`;
   };
 
+  const statusStyle = getStatusStyle(session.status);
+
   return (
     <div
+      className="claude-card"
       style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: "8px",
-        padding: "16px",
         marginBottom: "12px",
-        backgroundColor: session.status === "COMPLETED" ? "#f0fdf4" : "#fff",
         opacity: session.status === "SKIPPED" ? 0.6 : 1,
+        borderLeft: session.status === "COMPLETED" ? "4px solid var(--status-success)" : "1px solid var(--border-subtle)",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: 600, fontSize: "16px" }}>{session.topic}</span>
+            <h3 style={{ fontSize: "1.1rem", margin: 0 }}>{session.topic}</h3>
             {session.isRevision && (
-              <span
-                style={{
-                  backgroundColor: "#e0f2fe",
-                  color: "#0369a1",
-                  padding: "2px 8px",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                }}
-              >
+              <span className="claude-badge" style={{ backgroundColor: "var(--accent-muted)", color: "var(--accent-color)" }}>
                 Revision
               </span>
             )}
           </div>
           {session.subject && (
             <span
+              className="claude-badge"
               style={{
-                display: "inline-block",
-                marginTop: "4px",
-                backgroundColor: "#f3f4f6",
-                padding: "2px 8px",
+                marginTop: "6px",
+                backgroundColor: "var(--bg-primary)",
+                color: "var(--text-secondary)",
                 borderRadius: "4px",
-                fontSize: "12px",
-                color: "#4b5563",
               }}
             >
               {session.subject}
             </span>
           )}
-          <div style={{ marginTop: "8px", color: "#6b7280", fontSize: "14px" }}>
+          <div style={{ marginTop: "12px", color: "var(--text-secondary)", fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "4px" }}>
+            <span>🕒</span>
             {formatTime(session.startTime)} - {formatTime(session.endTime)} ({session.plannedMinutes} min)
           </div>
         </div>
         <span
+          className="claude-badge"
           style={{
-            backgroundColor: getStatusColor(session.status),
-            color: "#fff",
-            padding: "4px 12px",
-            borderRadius: "12px",
-            fontSize: "12px",
-            fontWeight: 500,
+            ...statusStyle,
+            padding: "4px 10px",
+            textTransform: "capitalize",
+            fontWeight: 600,
           }}
         >
-          {session.status}
+          {session.status.toLowerCase()}
         </span>
       </div>
 
       {session.status === "PENDING" && (
-        <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
+        <div style={{ marginTop: "1.5rem", display: "flex", gap: "10px" }}>
           <button
+            className="claude-button"
             onClick={() => onComplete(session.id)}
             disabled={loading}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#22c55e",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
-            }}
+            style={{ borderColor: "var(--status-success)", color: "var(--status-success)" }}
           >
             Complete
           </button>
           <button
+            className="claude-button"
             onClick={() => setShowPartial(!showPartial)}
             disabled={loading}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#f59e0b",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
-            }}
+            style={{ borderColor: "var(--status-warning)", color: "var(--status-warning)" }}
           >
             Partial
           </button>
           <button
+            className="claude-button"
             onClick={() => onSkip(session.id)}
             disabled={loading}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#ef4444",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
-            }}
+            style={{ borderColor: "var(--status-error)", color: "var(--status-error)" }}
           >
             Skip
           </button>
@@ -176,44 +145,25 @@ export default function SessionCard({
       )}
 
       {showPartial && (
-        <div style={{ marginTop: "12px", display: "flex", gap: "8px", alignItems: "center" }}>
+        <div style={{ marginTop: "1rem", display: "flex", gap: "10px", alignItems: "center", padding: "12px", backgroundColor: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}>
           <input
             type="number"
+            className="claude-input"
             value={partialMinutes}
             onChange={(e: any) => setPartialMinutes(e.target.value)}
-            placeholder="Minutes"
+            placeholder="Mins"
             min="1"
             max={session.plannedMinutes - 1}
-            style={{
-              padding: "6px 8px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              width: "80px",
-            }}
+            style={{ width: "80px" }}
           />
-          <button
-            onClick={handlePartial}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#f59e0b",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-            }}
-          >
+          <button className="claude-button claude-button-primary" onClick={handlePartial}>
             Save
           </button>
           <button
+            className="claude-button"
             onClick={() => {
               setShowPartial(false);
               setPartialMinutes("");
-            }}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "transparent",
-              color: "#6b7280",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
             }}
           >
             Cancel
@@ -222,13 +172,13 @@ export default function SessionCard({
       )}
 
       {session.status === "PARTIAL" && session.completedMinutes && (
-        <div style={{ marginTop: "8px", fontSize: "12px", color: "#f59e0b" }}>
-          Completed: {session.completedMinutes} minutes
+        <div style={{ marginTop: "12px", fontSize: "0.875rem", color: "var(--status-warning)", fontWeight: 500 }}>
+          ✓ Completed {session.completedMinutes} minutes
         </div>
       )}
 
       {session.remarks && (
-        <div style={{ marginTop: "8px", fontSize: "12px", color: "#6b7280", fontStyle: "italic" }}>
+        <div style={{ marginTop: "12px", fontSize: "0.875rem", color: "var(--text-muted)", fontStyle: "italic", borderTop: "1px solid var(--border-subtle)", paddingTop: "8px" }}>
           Note: {session.remarks}
         </div>
       )}

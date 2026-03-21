@@ -92,7 +92,6 @@ export default function DashboardPage() {
       const { ok } = await apiPatchJson(`/api/v1/sessions/${sessionId}/status`, body);
       if (ok) {
         if (status === "PARTIAL" || status === "SKIPPED") {
-          // Trigger the polling hook for async rebalancing
           triggerReschedulePoll();
         } else {
           await fetchPlan();
@@ -110,117 +109,88 @@ export default function DashboardPage() {
 
   if (loading && !plan) {
     return (
-      <div style={{ padding: "24px", textAlign: "center" }}>
-        <p>Loading your study plan...</p>
+      <div className="claude-container" style={{ textAlign: "center", paddingTop: "60px" }}>
+        <div className="animate-spin" style={{ width: "24px", height: "24px", border: "2px solid var(--border-subtle)", borderTopColor: "var(--accent-color)", borderRadius: "50%", margin: "0 auto 16px" }}></div>
+        <p style={{ color: "var(--text-secondary)" }}>Loading your study plan...</p>
       </div>
     );
   }
 
   if (!plan) {
     return (
-      <div style={{ padding: "24px", textAlign: "center" }}>
-        <p>No active study plan found.</p>
-        <button
-          onClick={() => router.push("/wizard")}
-          style={{
-            marginTop: "16px",
-            padding: "8px 16px",
-            backgroundColor: "#3b82f6",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Create Plan
+      <div className="claude-container" style={{ textAlign: "center", paddingTop: "60px" }}>
+        <h2 style={{ marginBottom: "12px" }}>Ready to Start?</h2>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>No active study plan found. Let&apos;s build one for your goals.</p>
+        <button onClick={() => router.push("/wizard")} className="claude-button claude-button-primary">
+          Create Study Plan
         </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 600 }}>Today&apos;s Study Plan</h1>
-        <button
-          onClick={() => router.push("/analytics")}
-          style={{ padding: "6px 12px", backgroundColor: "#f3f4f6", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px" }}
-        >
-          View Analytics
+    <div className="claude-container">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "24px" }}>
+        <div>
+          <h1 style={{ fontSize: "2rem", marginBottom: "4px" }}>Today&apos;s Sessions</h1>
+          {plan.examName && <p style={{ color: "var(--text-secondary)" }}>{plan.examName}</p>}
+        </div>
+        <button onClick={() => router.push("/analytics")} className="claude-button">
+          📊 Analytics
         </button>
       </div>
-      
-      {plan.examName && (
-        <p style={{ color: "#6b7280", marginBottom: "24px" }}>{plan.examName}</p>
-      )}
 
       {isRescheduling && (
-        <div style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", padding: "12px", borderRadius: "8px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "16px", height: "16px", border: "2px solid #93c5fd", borderTopColor: "#1d4ed8", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
-          <span style={{ fontWeight: 500 }}>AI is rebalancing your schedule in the background...</span>
+        <div style={{ backgroundColor: "rgba(59, 130, 246, 0.08)", color: "var(--status-info)", padding: "12px 16px", borderRadius: "var(--radius-md)", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+          <div className="animate-spin" style={{ width: "16px", height: "16px", border: "2px solid rgba(59, 130, 246, 0.2)", borderTopColor: "currentColor", borderRadius: "50%" }}></div>
+          <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>AI is optimizing your schedule in the background...</span>
         </div>
       )}
 
-      <div
-        style={{
-          backgroundColor: "#f9fafb",
-          padding: "16px",
-          borderRadius: "8px",
-          marginBottom: "24px",
-        }}
-      >
-        <div style={{ fontSize: "14px", color: "#6b7280" }}>Today&apos;s Progress</div>
-        <div style={{ fontSize: "24px", fontWeight: 600, marginTop: "4px" }}>
-          {completedCount} / {todaySessions.length} sessions completed
+      <div className="claude-card" style={{ marginBottom: "32px", borderLeft: "4px solid var(--accent-color)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div className="claude-label">Daily Progress</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 600 }}>
+              {completedCount} / {todaySessions.length} <span style={{ fontSize: "1rem", color: "var(--text-secondary)", fontWeight: 400 }}>sessions completed</span>
+            </div>
+          </div>
+          <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: `conic-gradient(var(--accent-color) ${(completedCount / (todaySessions.length || 1)) * 360}deg, var(--bg-primary) 0deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+             <div style={{ width: "50px", height: "50px", borderRadius: "50%", background: "var(--bg-secondary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>
+               {Math.round((completedCount / (todaySessions.length || 1)) * 100)}%
+             </div>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div
-          style={{
-            backgroundColor: "#fef2f2",
-            color: "#dc2626",
-            padding: "12px",
-            borderRadius: "4px",
-            marginBottom: "16px",
-          }}
-        >
+        <div style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "var(--status-error)", padding: "12px", borderRadius: "var(--radius-md)", marginBottom: "16px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
           {error}
         </div>
       )}
 
-      {todaySessions.length === 0 ? (
-        <p style={{ color: "#6b7280", textAlign: "center", padding: "32px" }}>
-          No sessions scheduled for today.
-        </p>
-      ) : (
-        todaySessions.map((session) => (
-          <SessionCard
-            key={session.id}
-            session={session}
-            onComplete={(id) => handleStatusUpdate(id, "COMPLETED")}
-            onPartial={(id, mins) => handleStatusUpdate(id, "PARTIAL", mins)}
-            onSkip={(id) => handleStatusUpdate(id, "SKIPPED")}
-            loading={updatingSession === session.id || isRescheduling}
-          />
-        ))
-      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {todaySessions.length === 0 ? (
+          <div className="claude-card" style={{ textAlign: "center", padding: "48px 0" }}>
+            <p style={{ color: "var(--text-muted)" }}>Relax! No sessions scheduled for today.</p>
+          </div>
+        ) : (
+          todaySessions.map((session) => (
+            <SessionCard
+              key={session.id}
+              session={session}
+              onComplete={(id) => handleStatusUpdate(id, "COMPLETED")}
+              onPartial={(id, mins) => handleStatusUpdate(id, "PARTIAL", mins)}
+              onSkip={(id) => handleStatusUpdate(id, "SKIPPED")}
+              loading={updatingSession === session.id || isRescheduling}
+            />
+          ))
+        )}
+      </div>
 
-      <div style={{ marginTop: "32px", textAlign: "center" }}>
-        <button
-          onClick={() => router.push("/timeline")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "transparent",
-            color: "#3b82f6",
-            border: "1px solid #3b82f6",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          View Full Timeline
+      <div style={{ marginTop: "40px", textAlign: "center" }}>
+        <button onClick={() => router.push("/timeline")} className="claude-button" style={{ minWidth: "200px" }}>
+          Explore Full Timeline
         </button>
       </div>
     </div>
