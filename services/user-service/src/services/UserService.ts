@@ -64,7 +64,7 @@ class UserService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const userCreateData: any = {
         email: userData.email,
-        role: "user",
+        role: "USER",
         isActive: true,
         isVerified: false,
       };
