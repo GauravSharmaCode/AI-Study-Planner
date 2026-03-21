@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import SessionCard from "../components/SessionCard";
 import { apiGetJson, apiPatchJson } from "../lib/api";
 import { useRescheduleStatus } from "../hooks/useRescheduleStatus";
+import { getLocalToday, utcToLocalDateString, formatDateDisplay, addDays, isToday } from "../lib/dateUtils";
 
 interface Session {
   id: string;
@@ -32,14 +33,14 @@ export default function TimelinePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingSession, setUpdatingSession] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0] || "");
+  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalToday());
 
   const fetchPlan = async () => {
     try {
       setLoading(true);
       const { ok, data } = await apiGetJson("/api/v1/plans");
       if (!ok) {
-        setError(data.message || "Failed to fetch plans");
+        setError(data?.message || "Failed to fetch plans");
         return;
       }
       const activePlan = data.data?.find((p: any) => p.isActive);
@@ -78,7 +79,10 @@ export default function TimelinePage() {
 
   const getSessionsForDate = (date: string): Session[] => {
     if (!plan?.sessions) return [];
-    return plan.sessions.filter((s) => s.date.startsWith(date));
+    return plan.sessions.filter((s) => {
+      const sessionDate = utcToLocalDateString(s.date);
+      return sessionDate === date;
+    });
   };
 
   const handleStatusUpdate = async (sessionId: string, status: string, completedMinutes?: number) => {
@@ -104,21 +108,12 @@ export default function TimelinePage() {
   };
 
   const navigateDate = (days: number) => {
-    const current = new Date(selectedDate!);
-    current.setDate(current.getDate() + days);
-    setSelectedDate(current.toISOString().split("T")[0] || "");
+    setSelectedDate(addDays(selectedDate!, days));
   };
 
   const formatDateDisplay = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
+    return formatDateDisplay(dateStr);
   };
-
-  const isToday = selectedDate === (new Date().toISOString().split("T")[0] || "");
 
   const sessions = getSessionsForDate(selectedDate);
   const completedCount = sessions.filter((s) => s.status === "COMPLETED").length;
@@ -174,7 +169,7 @@ export default function TimelinePage() {
           
           <div style={{ textAlign: "center", flex: 1 }}>
             <div style={{ fontSize: "1.125rem", fontWeight: 600 }}>{formatDateDisplay(selectedDate)}</div>
-            {isToday && (
+            {isToday(selectedDate) && (
               <span className="claude-badge" style={{ marginTop: "4px", backgroundColor: "var(--accent-color)", color: "white" }}>
                 Today
               </span>
