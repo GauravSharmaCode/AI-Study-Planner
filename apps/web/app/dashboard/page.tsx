@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import SessionCard from "../components/SessionCard";
 import { apiGetJson, apiPatchJson } from "../lib/api";
 import { useRescheduleStatus } from "../hooks/useRescheduleStatus";
+import { getLocalToday, utcToLocalDateString } from "../lib/dateUtils";
 
 interface Session {
   id: string;
@@ -39,7 +40,7 @@ export default function DashboardPage() {
       setLoading(true);
       const { ok, data } = await apiGetJson("/api/v1/plans");
       if (!ok) {
-        setError(data.message || "Failed to fetch plans");
+        setError(data?.message || "Failed to fetch plans");
         return;
       }
       const activePlan = data.data?.find((p: any) => p.isActive);
@@ -78,8 +79,11 @@ export default function DashboardPage() {
 
   const getTodaySessions = (): Session[] => {
     if (!plan?.sessions) return [];
-    const today = new Date().toISOString().split("T")[0] || "";
-    return plan.sessions.filter((s) => s.date.startsWith(today));
+    const today = getLocalToday();
+    return plan.sessions.filter((s) => {
+      const sessionDate = utcToLocalDateString(s.date);
+      return sessionDate === today;
+    });
   };
 
   const handleStatusUpdate = async (sessionId: string, status: string, completedMinutes?: number) => {

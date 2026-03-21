@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { formatTime } from "../lib/dateUtils";
 
 interface Session {
   id: string;
@@ -53,14 +54,6 @@ export default function SessionCard({
       default:
         return { backgroundColor: "var(--bg-primary)", color: "var(--text-secondary)" };
     }
-  };
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":");
-    const h = parseInt(hours || "0", 10);
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    return `${h12}:${minutes} ${ampm}`;
   };
 
   const statusStyle = getStatusStyle(session.status);

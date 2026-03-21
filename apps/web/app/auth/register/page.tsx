@@ -22,8 +22,8 @@ export default function Register() {
         body: JSON.stringify({ name, email, password }),
       });
       const data: any = await res.json();
-      if (res.ok && data?.data?.token) {
-        saveToken(data.data.token);
+      if (res.ok && data?.token) {
+        saveToken(data.token);
         router.push("/wizard/step1");
       } else {
         setError((data as any)?.message ?? "Registration failed. Please check your details.");
