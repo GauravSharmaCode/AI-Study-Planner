@@ -125,169 +125,107 @@ export default function TimelinePage() {
 
   if (loading && !plan) {
     return (
-      <div style={{ padding: "24px", textAlign: "center" }}>
-        <p>Loading your study plan...</p>
+      <div className="claude-container" style={{ textAlign: "center", paddingTop: "60px" }}>
+        <div className="animate-spin" style={{ width: "24px", height: "24px", border: "2px solid var(--border-subtle)", borderTopColor: "var(--accent-color)", borderRadius: "50%", margin: "0 auto 16px" }}></div>
+        <p style={{ color: "var(--text-secondary)" }}>Loading timeline...</p>
       </div>
     );
   }
 
   if (!plan) {
     return (
-      <div style={{ padding: "24px", textAlign: "center" }}>
-        <p>No active study plan found.</p>
-        <button
-          onClick={() => router.push("/wizard")}
-          style={{
-            marginTop: "16px",
-            padding: "8px 16px",
-            backgroundColor: "#3b82f6",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Create Plan
+      <div className="claude-container" style={{ textAlign: "center", paddingTop: "60px" }}>
+        <h2 style={{ marginBottom: "12px" }}>No Plan Active</h2>
+        <button onClick={() => router.push("/wizard")} className="claude-button claude-button-primary">
+          Build a Plan
         </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <button
-          onClick={() => router.push("/dashboard")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "transparent",
-            color: "#3b82f6",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          ← Back to Dashboard
+    <div className="claude-container">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+        <button onClick={() => router.push("/dashboard")} className="claude-button" style={{ border: "none", paddingLeft: 0 }}>
+          ← <span style={{ textDecoration: "underline" }}>Dashboard</span>
         </button>
-        <button
-          onClick={() => router.push("/analytics")}
-          style={{ padding: "6px 12px", backgroundColor: "#f3f4f6", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px" }}
-        >
-          Analytics
+        <button onClick={() => router.push("/analytics")} className="claude-button">
+          📊 Stats
         </button>
       </div>
 
-      <h1 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "8px" }}>Timeline</h1>
-      {plan.examName && (
-        <p style={{ color: "#6b7280", marginBottom: "24px" }}>{plan.examName}</p>
-      )}
+      <div style={{ marginBottom: "32px" }}>
+        <h1 style={{ fontSize: "2rem", marginBottom: "4px" }}>Timeline</h1>
+        {plan.examName && <p style={{ color: "var(--text-secondary)" }}>{plan.examName}</p>}
+      </div>
 
       {isRescheduling && (
-        <div style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", padding: "12px", borderRadius: "8px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "16px", height: "16px", border: "2px solid #93c5fd", borderTopColor: "#1d4ed8", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
-          <span style={{ fontWeight: 500 }}>AI is rebalancing your schedule in the background...</span>
+        <div style={{ backgroundColor: "rgba(59, 130, 246, 0.08)", color: "var(--status-info)", padding: "12px 16px", borderRadius: "var(--radius-md)", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+          <div className="animate-spin" style={{ width: "16px", height: "16px", border: "2px solid rgba(59, 130, 246, 0.2)", borderTopColor: "currentColor", borderRadius: "50%" }}></div>
+          <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>Optimizing schedule...</span>
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: "#f9fafb",
-          padding: "16px",
-          borderRadius: "8px",
-          marginBottom: "24px",
-        }}
-      >
-        <button
-          onClick={() => navigateDate(-1)}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#fff",
-            border: "1px solid #d1d5db",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          ← Previous
-        </button>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "18px", fontWeight: 600 }}>{formatDateDisplay(selectedDate)}</div>
-          {isToday && (
-            <span
-              style={{
-                backgroundColor: "#3b82f6",
-                color: "#fff",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                fontSize: "12px",
-              }}
-            >
-              Today
-            </span>
-          )}
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e: any) => setSelectedDate(e.target.value)}
-            style={{
-              marginTop: "8px",
-              padding: "4px 8px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-            }}
-          />
+      <div className="claude-card" style={{ marginBottom: "32px", padding: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={() => navigateDate(-1)} className="claude-button" style={{ width: "40px", height: "40px", padding: 0 }}>
+            ←
+          </button>
+          
+          <div style={{ textAlign: "center", flex: 1 }}>
+            <div style={{ fontSize: "1.125rem", fontWeight: 600 }}>{formatDateDisplay(selectedDate)}</div>
+            {isToday && (
+              <span className="claude-badge" style={{ marginTop: "4px", backgroundColor: "var(--accent-color)", color: "white" }}>
+                Today
+              </span>
+            )}
+            <div style={{ marginTop: "12px" }}>
+              <input
+                type="date"
+                className="claude-input"
+                value={selectedDate}
+                onChange={(e: any) => setSelectedDate(e.target.value)}
+                style={{ width: "auto", display: "inline-block", padding: "4px 8px" }}
+              />
+            </div>
+          </div>
+
+          <button onClick={() => navigateDate(1)} className="claude-button" style={{ width: "40px", height: "40px", padding: 0 }}>
+            →
+          </button>
         </div>
-        <button
-          onClick={() => navigateDate(1)}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#fff",
-            border: "1px solid #d1d5db",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Next →
-        </button>
       </div>
 
       {error && (
-        <div
-          style={{
-            backgroundColor: "#fef2f2",
-            color: "#dc2626",
-            padding: "12px",
-            borderRadius: "4px",
-            marginBottom: "16px",
-          }}
-        >
+        <div style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "var(--status-error)", padding: "12px", borderRadius: "var(--radius-md)", marginBottom: "16px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
           {error}
         </div>
       )}
 
-      {sessions.length === 0 ? (
-        <p style={{ color: "#6b7280", textAlign: "center", padding: "32px" }}>
-          No sessions scheduled for this date.
-        </p>
-      ) : (
-        <>
-          <div style={{ marginBottom: "16px", color: "#6b7280" }}>
-            {completedCount} / {sessions.length} completed
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {sessions.length === 0 ? (
+          <div className="claude-card" style={{ textAlign: "center", padding: "48px 0" }}>
+            <p style={{ color: "var(--text-muted)" }}>No sessions scheduled for this date.</p>
           </div>
-          {sessions.map((session) => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              onComplete={(id) => handleStatusUpdate(id, "COMPLETED")}
-              onPartial={(id, mins) => handleStatusUpdate(id, "PARTIAL", mins)}
-              onSkip={(id) => handleStatusUpdate(id, "SKIPPED")}
-              loading={updatingSession === session.id || isRescheduling}
-            />
-          ))}
-        </>
-      )}
+        ) : (
+          <>
+            <div style={{ marginBottom: "12px", fontSize: "0.875rem", color: "var(--text-secondary)", display: "flex", justifyContent: "space-between" }}>
+               <span>Schedule</span>
+               <span>{completedCount} / {sessions.length} complete</span>
+            </div>
+            {sessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                onComplete={(id) => handleStatusUpdate(id, "COMPLETED")}
+                onPartial={(id, mins) => handleStatusUpdate(id, "PARTIAL", mins)}
+                onSkip={(id) => handleStatusUpdate(id, "SKIPPED")}
+                loading={updatingSession === session.id || isRescheduling}
+              />
+            ))}
+          </>
+        )}
+      </div>
     </div>
   );
 }

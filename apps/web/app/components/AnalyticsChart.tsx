@@ -9,9 +9,9 @@ interface AnalyticsChartProps {
 
 export default function AnalyticsChart({
   percentage,
-  size = 120,
-  strokeWidth = 12,
-  color = "#3b82f6",
+  size = 140,
+  strokeWidth = 10,
+  color = "var(--accent-color)",
 }: AnalyticsChartProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -21,7 +21,7 @@ export default function AnalyticsChart({
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: size, height: size }}>
       <svg height={size} width={size} style={{ transform: "rotate(-90deg)" }}>
         <circle
-          stroke="#e5e7eb"
+          stroke="var(--bg-primary)"
           fill="transparent"
           strokeWidth={strokeWidth}
           r={radius}
@@ -33,7 +33,7 @@ export default function AnalyticsChart({
           fill="transparent"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference + " " + circumference}
-          style={{ strokeDashoffset, transition: "stroke-dashoffset 0.5s ease-in-out" }}
+          style={{ strokeDashoffset, transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
           r={radius}
           cx={size / 2}
           cy={size / 2}
@@ -46,9 +46,10 @@ export default function AnalyticsChart({
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          fontSize: "24px",
-          fontWeight: "bold",
-          color: "#1f2937",
+          fontSize: "1.75rem",
+          fontWeight: "600",
+          color: "var(--text-primary)",
+          fontFamily: "var(--font-serif)",
         }}
       >
         {Math.round(percentage)}%

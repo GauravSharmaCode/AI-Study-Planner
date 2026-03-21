@@ -70,25 +70,19 @@ export default function AnalyticsPage() {
   };
 
   if (loading) {
-    return <div style={{ padding: "24px", textAlign: "center" }}>Loading analytics...</div>;
+    return (
+      <div className="claude-container" style={{ textAlign: "center", paddingTop: "60px" }}>
+        <div className="animate-spin" style={{ width: "24px", height: "24px", border: "2px solid var(--border-subtle)", borderTopColor: "var(--accent-color)", borderRadius: "50%", margin: "0 auto 16px" }}></div>
+        <p style={{ color: "var(--text-secondary)" }}>Analyzing your progress...</p>
+      </div>
+    );
   }
 
   if (!plan || !analytics) {
     return (
-      <div style={{ padding: "24px", textAlign: "center" }}>
-        <p>No active study plan found or no analytics available.</p>
-        <button
-          onClick={() => router.push("/dashboard")}
-          style={{
-            marginTop: "16px",
-            padding: "8px 16px",
-            backgroundColor: "#3b82f6",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
+      <div className="claude-container" style={{ textAlign: "center", paddingTop: "60px" }}>
+        <h2 style={{ marginBottom: "16px" }}>No Analytics Yet</h2>
+        <button onClick={() => router.push("/dashboard")} className="claude-button claude-button-primary">
           Back to Dashboard
         </button>
       </div>
@@ -98,90 +92,83 @@ export default function AnalyticsPage() {
   const formatHours = (mins: number) => (mins / 60).toFixed(1) + "h";
 
   return (
-    <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <button
-          onClick={() => router.push("/dashboard")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "transparent",
-            color: "#3b82f6",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          ← Back to Dashboard
+    <div className="claude-container">
+      <div style={{ marginBottom: "32px" }}>
+        <button onClick={() => router.push("/dashboard")} className="claude-button" style={{ border: "none", paddingLeft: 0, marginBottom: "24px" }}>
+          ← <span style={{ textDecoration: "underline" }}>Dashboard</span>
         </button>
+        <h1 style={{ fontSize: "2rem", marginBottom: "4px" }}>Analytics</h1>
+        {plan.examName && <p style={{ color: "var(--text-secondary)" }}>{plan.examName}</p>}
       </div>
 
-      <h1 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "8px" }}>Analytics & Progress</h1>
-      {plan.examName && <p style={{ color: "#6b7280", marginBottom: "24px" }}>{plan.examName}</p>}
-
       {error && (
-        <div style={{ backgroundColor: "#fef2f2", color: "#dc2626", padding: "12px", borderRadius: "4px", marginBottom: "16px" }}>
+        <div style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "var(--status-error)", padding: "12px", borderRadius: "var(--radius-md)", marginBottom: "24px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
           {error}
         </div>
       )}
 
       {analytics.isAtRisk && (
-        <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "16px", borderRadius: "8px", border: "1px solid #fca5a5", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <span style={{ fontSize: "20px" }}>⚠️</span>
+        <div style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "var(--status-error)", padding: "20px", borderRadius: "var(--radius-md)", border: "1px solid rgba(239, 68, 68, 0.2)", marginBottom: "32px", display: "flex", gap: "16px" }}>
+          <span style={{ fontSize: "24px" }}>⚠️</span>
           <div>
-            <strong>Schedule at Risk</strong>
-            <p style={{ margin: 0, fontSize: "14px", marginTop: "4px" }}>
-              You are falling behind the required velocity to finish by your exam date. Consider increasing your daily study hours.
+            <strong style={{ fontSize: "1.1rem" }}>Schedule at Risk</strong>
+            <p style={{ margin: "4px 0 0", fontSize: "0.875rem", opacity: 0.9 }}>
+              You are falling behind the required velocity. Consider re-evaluating your daily targets or increasing study hours to stay on track for your exam.
             </p>
           </div>
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "32px" }}>
-        <div style={{ backgroundColor: "#f9fafb", padding: "24px", borderRadius: "8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "24px", color: "#374151" }}>Overall Coverage</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "40px" }}>
+        <div className="claude-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "240px" }}>
+          <h3 className="claude-label" style={{ marginBottom: "24px" }}>Overall Completion</h3>
           <AnalyticsChart
             percentage={analytics.completionPercentage}
-            color={analytics.completionPercentage > 75 ? "#22c55e" : analytics.completionPercentage > 40 ? "#eab308" : "#3b82f6"}
+            color={analytics.completionPercentage > 75 ? "var(--status-success)" : analytics.completionPercentage > 40 ? "var(--status-warning)" : "var(--accent-color)"}
           />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ backgroundColor: "#f9fafb", padding: "16px", borderRadius: "8px" }}>
-            <div style={{ fontSize: "14px", color: "#6b7280" }}>Time Invested</div>
-            <div style={{ fontSize: "24px", fontWeight: 600, marginTop: "4px" }}>
-              {formatHours(analytics.totalCompletedMinutes)} <span style={{ fontSize: "14px", color: "#9ca3af", fontWeight: "normal" }}>/ {formatHours(analytics.totalPlannedMinutes)}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="claude-card" style={{ flex: 1 }}>
+            <div className="claude-label">Time Invested</div>
+            <div style={{ fontSize: "2rem", fontWeight: 600, marginTop: "8px" }}>
+              {formatHours(analytics.totalCompletedMinutes)} <span style={{ fontSize: "1rem", color: "var(--text-muted)", fontWeight: 400 }}>/ {formatHours(analytics.totalPlannedMinutes)}</span>
+            </div>
+            <div style={{ marginTop: "12px", height: "4px", backgroundColor: "var(--bg-primary)", borderRadius: "2px", overflow: "hidden" }}>
+               <div style={{ height: "100%", backgroundColor: "var(--accent-color)", width: `${(analytics.totalCompletedMinutes / analytics.totalPlannedMinutes) * 100}%` }}></div>
             </div>
           </div>
           
-          <div style={{ backgroundColor: "#f9fafb", padding: "16px", borderRadius: "8px" }}>
-            <div style={{ fontSize: "14px", color: "#6b7280" }}>Days Remaining</div>
-            <div style={{ fontSize: "24px", fontWeight: 600, marginTop: "4px", color: analytics.daysRemaining < 7 ? "#dc2626" : "inherit" }}>
-              {analytics.daysRemaining} days
+          <div className="claude-card" style={{ flex: 1 }}>
+            <div className="claude-label">Days Remaining</div>
+            <div style={{ fontSize: "2rem", fontWeight: 600, marginTop: "8px", color: analytics.daysRemaining < 7 ? "var(--status-error)" : "inherit" }}>
+              {analytics.daysRemaining} <span style={{ fontSize: "1rem", color: "var(--text-muted)", fontWeight: 400 }}>days until exam</span>
             </div>
           </div>
         </div>
       </div>
 
-      <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "16px" }}>Sessions Overview</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "16px" }}>
-        <div style={{ border: "1px solid #e5e7eb", padding: "16px", borderRadius: "8px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: 600 }}>{analytics.totalSessions}</div>
-          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px", textTransform: "uppercase" }}>Total</div>
+      <h3 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "20px", fontFamily: "var(--font-serif)" }}>Detailed Breakdown</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px", marginBottom: "40px" }}>
+        <div className="claude-card" style={{ textAlign: "center", padding: "16px" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 600 }}>{analytics.totalSessions}</div>
+          <div className="claude-label" style={{ marginTop: "4px", fontSize: "0.75rem" }}>Total Units</div>
         </div>
-        <div style={{ border: "1px solid #bbf7d0", backgroundColor: "#f0fdf4", padding: "16px", borderRadius: "8px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: 600, color: "#166534" }}>{analytics.completedSessions}</div>
-          <div style={{ fontSize: "12px", color: "#166534", marginTop: "4px", textTransform: "uppercase" }}>Completed</div>
+        <div className="claude-card" style={{ textAlign: "center", padding: "16px", borderBottom: "3px solid var(--status-success)" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 600, color: "var(--status-success)" }}>{analytics.completedSessions}</div>
+          <div className="claude-label" style={{ marginTop: "4px", fontSize: "0.75rem" }}>Success</div>
         </div>
-        <div style={{ border: "1px solid #fef08a", backgroundColor: "#fefce8", padding: "16px", borderRadius: "8px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: 600, color: "#854d0e" }}>{analytics.partialSessions}</div>
-          <div style={{ fontSize: "12px", color: "#854d0e", marginTop: "4px", textTransform: "uppercase" }}>Partial</div>
+        <div className="claude-card" style={{ textAlign: "center", padding: "16px", borderBottom: "3px solid var(--status-warning)" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 600, color: "var(--status-warning)" }}>{analytics.partialSessions}</div>
+          <div className="claude-label" style={{ marginTop: "4px", fontSize: "0.75rem" }}>Partial</div>
         </div>
-        <div style={{ border: "1px solid #fecaca", backgroundColor: "#fef2f2", padding: "16px", borderRadius: "8px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: 600, color: "#991b1b" }}>{analytics.skippedSessions}</div>
-          <div style={{ fontSize: "12px", color: "#991b1b", marginTop: "4px", textTransform: "uppercase" }}>Skipped</div>
+        <div className="claude-card" style={{ textAlign: "center", padding: "16px", borderBottom: "3px solid var(--status-error)" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 600, color: "var(--status-error)" }}>{analytics.skippedSessions}</div>
+          <div className="claude-label" style={{ marginTop: "4px", fontSize: "0.75rem" }}>Skipped</div>
         </div>
-        <div style={{ border: "1px solid #e5e7eb", padding: "16px", borderRadius: "8px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: 600 }}>{analytics.pendingSessions}</div>
-          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px", textTransform: "uppercase" }}>Pending</div>
+        <div className="claude-card" style={{ textAlign: "center", padding: "16px" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 600, color: "var(--text-muted)" }}>{analytics.pendingSessions}</div>
+          <div className="claude-label" style={{ marginTop: "4px", fontSize: "0.75rem" }}>Planned</div>
         </div>
       </div>
     </div>
