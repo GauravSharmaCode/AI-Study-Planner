@@ -15,7 +15,7 @@ export default function WizardDone() {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <Link href="/dashboard" className="claude-button claude-button-primary" style={{ textDecoration: "none", padding: "14px" }}>
             Go to My Dashboard
-          </button>
+          </Link>
           <Link href="/timeline" className="claude-button" style={{ textDecoration: "none" }}>
             View Full Timeline
           </Link>
