@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveToken } from "../../lib/api";
 
-export default function Login() {
+export default function Register() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -15,17 +16,17 @@ export default function Login() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/auth/login", {
+      const res = await fetch("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       const data: any = await res.json();
       if (res.ok && data?.data?.token) {
         saveToken(data.data.token);
         router.push("/wizard/step1");
       } else {
-        setError((data as any)?.message ?? "Login failed. Please check your credentials.");
+        setError((data as any)?.message ?? "Registration failed. Please check your details.");
       }
     } catch {
       setError("Network error. Please try again.");
@@ -38,8 +39,8 @@ export default function Login() {
     <div className="claude-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
       <div className="claude-card" style={{ width: "100%", maxWidth: "400px", padding: "40px" }}>
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <h1 style={{ fontSize: "2rem", marginBottom: "8px" }}>Welcome Back</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Log in to your study dashboard</p>
+          <h1 style={{ fontSize: "2rem", marginBottom: "8px" }}>Get Started</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Create your study account</p>
         </div>
 
         <form onSubmit={onSubmit}>
@@ -49,6 +50,18 @@ export default function Login() {
             </div>
           )}
           
+          <div style={{ marginBottom: "20px" }}>
+            <label className="claude-label">Full Name</label>
+            <input
+              type="text"
+              className="claude-input"
+              value={name}
+              onChange={(e: any) => setName(e.target.value)}
+              placeholder="Your name"
+              required
+            />
+          </div>
+
           <div style={{ marginBottom: "20px" }}>
             <label className="claude-label">Email Address</label>
             <input
@@ -74,18 +87,18 @@ export default function Login() {
           </div>
           
           <button type="submit" className="claude-button claude-button-primary" style={{ width: "100%", padding: "12px" }} disabled={loading}>
-            {loading ? "Logging in..." : "Continue"}
+            {loading ? "Creating account..." : "Continue"}
           </button>
         </form>
 
         <div style={{ marginTop: "32px", textAlign: "center", borderTop: "1px solid var(--border-subtle)", paddingTop: "24px" }}>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-            Don&apos;t have an account?{" "}
+            Already have an account?{" "}
             <button 
-              onClick={() => router.push("/auth/register")}
+              onClick={() => router.push("/auth/login")}
               style={{ color: "var(--accent-color)", fontWeight: 600, border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: "inherit" }}
             >
-              Sign up
+              Log in
             </button>
           </p>
         </div>

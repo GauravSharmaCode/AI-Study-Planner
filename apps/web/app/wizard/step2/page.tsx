@@ -16,8 +16,10 @@ export default function WizardStep2() {
     const s = localStorage.getItem("wizard.step1");
     if (s) {
       setStep1(JSON.parse(s));
+    } else {
+      router.push("/wizard/step1");
     }
-  }, []);
+  }, [router]);
 
   const onNext = async () => {
     const subjects = rawSubjects
@@ -26,7 +28,7 @@ export default function WizardStep2() {
       .filter((t) => t.length > 0);
 
     if (!step1 || subjects.length === 0) {
-      setError("Please provide at least one subject and complete Step 1");
+      setError("Please provide at least one subject.");
       return;
     }
 
@@ -40,37 +42,67 @@ export default function WizardStep2() {
 
     try {
       setLoading(true);
+      setError(null);
       const { ok, data } = await apiPostJson("/api/v1/plans/generate", payload);
       if (ok && (data as any)?.data?.planId) {
-        // navigate to step3 with planId
         router.push(`/wizard/step3?planId=${(data as any).data.planId}`);
       } else {
-        setError((data as any)?.message ?? "Generation failed");
+        setError((data as any)?.message ?? "Generation failed. Our AI might be busy, please try again.");
       }
     } catch (err) {
-      setError("Network error");
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <h2>Step 2: Subjects</h2>
-      <div>
-        <label>Subjects (comma-separated)</label>
-        <input
-          aria-label="Subjects"
-          placeholder="e.g. Mathematics, Physics, Chemistry"
-          value={rawSubjects}
-          onChange={(e: any) => setRawSubjects(e.target.value)}
-          style={{ display: "block", width: "520px", marginTop: 8 }}
-        />
+    <div className="claude-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div className="claude-card" style={{ width: "100%", maxWidth: "520px", padding: "40px" }}>
+        <div style={{ marginBottom: "32px" }}>
+          <div className="claude-badge" style={{ backgroundColor: "var(--accent-muted)", color: "var(--accent-color)", marginBottom: "16px" }}>Step 2 of 5</div>
+          <h1 style={{ fontSize: "2rem", marginBottom: "8px" }}>Subjects</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>What subjects or areas are you covering?</p>
+        </div>
+
+        <div style={{ marginBottom: "32px" }}>
+          <label className="claude-label">List Subjects</label>
+          <textarea
+            className="claude-input"
+            placeholder="e.g. Mathematics, Organic Chemistry, Macroeconomics"
+            value={rawSubjects}
+            onChange={(e: any) => setRawSubjects(e.target.value)}
+            style={{ display: "block", width: "100%", minHeight: "100px", resize: "vertical" }}
+            required
+          />
+          <p style={{ marginTop: "8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>Separate subjects with commas. Our AI will break these down into study units.</p>
+        </div>
+
+        {error && (
+          <div style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "var(--status-error)", padding: "12px", borderRadius: "var(--radius-md)", marginBottom: "20px", fontSize: "0.875rem", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={() => router.back()} className="claude-button">
+            Back
+          </button>
+          <button 
+            onClick={onNext} 
+            className="claude-button claude-button-primary" 
+            style={{ minWidth: "160px" }}
+            disabled={loading || !rawSubjects.trim()}
+          >
+            {loading ? (
+               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                 <div className="animate-spin" style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%" }}></div>
+                 AI Generating...
+               </div>
+            ) : "Generate Plan"}
+          </button>
+        </div>
       </div>
-      {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
-      <button onClick={onNext} style={{ marginTop: 16 }} disabled={loading}>
-        {loading ? "Generating..." : "Generate Plan"}
-      </button>
     </div>
   );
 }

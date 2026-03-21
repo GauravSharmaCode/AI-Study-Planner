@@ -1,0 +1,49 @@
+# Claude-Themed UI Redesign Plan
+
+This plan outlines the steps to reskin the **existing** frontend pages and components to match the elegant, minimalist aesthetic of the Claude web app. No new major structural components (like a persistent sidebar or chat interface) will be added unless specified; instead, we will theme what we have.
+
+## Design System Strategy (Claude Aesthetic)
+- **Typography**: Clean sans-serif (Inter) with optional elegant serif accents for major headers.
+- **Colors**:
+  - Background: Warm off-white/beige (`#f9f8f6`) or a sophisticated dark grayish-brown (`#21201D`).
+  - Cards/Containers: Slightly lighter/darker than the background to create soft depth.
+  - Borders: Very subtle, low-opacity borders (`rgba(0,0,0,0.08)` or `rgba(255,255,255,0.1)`).
+  - Accents: Muted, earthy tones (e.g., Claude's signature rust/orange `#d97757` or soft blues/greens for status).
+- **Shapes**: Gently rounded corners (e.g., `8px` to `12px`), soft shadows on hover only.
+
+## Proposed Changes
+
+### Global Styles
+#### [MODIFY] globals.css ([c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\globals.css](file:///c:/Users/Gaurav/projects/AI-Study-Planner/apps/web/app/globals.css))
+- Define the new CSS color variables representing the Claude theme (backgrounds, surfaces, text, muting, subtle borders).
+- Update generic button styles to match the minimalist Claude button look.
+
+### Pages & Layouts
+#### [MODIFY] layout.tsx ([c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\layout.tsx](file:///c:/Users/Gaurav/projects/AI-Study-Planner/apps/web/app/layout.tsx))
+- Ensure the `<body>` correctly applies the new background and text variables.
+
+#### [MODIFY] Dashboard ([c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\dashboard\page.tsx](file:///c:/Users/Gaurav/projects/AI-Study-Planner/apps/web/app/dashboard/page.tsx)) & Timeline ([c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\timeline\page.tsx](file:///c:/Users/Gaurav/projects/AI-Study-Planner/apps/web/app/timeline/page.tsx))
+- Update inline styles: replace hardcoded colors (like `#f9fafb`, `#3b82f6`) with CSS variables or Claude-specific hex codes.
+- Improve typography hierarchy and spacing.
+- Style the "AI is rebalancing..." banner with a softer, premium alert design rather than default blue.
+
+#### [MODIFY] Analytics ([c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\analytics\page.tsx](file:///Users/Gaurav/projects/AI-Study-Planner/apps/web/app/analytics/page.tsx)) & Wizard (`c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\wizard`)
+- Apply the same background, card styling, and typography variables.
+
+### Components
+#### [MODIFY] SessionCard (`c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\components\SessionCard.tsx`)
+- Update the hardcoded inline styles.
+- Soften the status colors (e.g., a more muted green for COMPLETED, sophisticated amber for PARTIAL).
+- Adjust border radiuses and padding to reflect Claude's "floating card" or subtle separated lists.
+- Style the action buttons (Complete, Partial, Skip) to look more like understated secondary buttons rather than bright solid blocks.
+
+#### [MODIFY] AnalyticsChart (`c:\Users\Gaurav\projects\AI-Study-Planner\apps\web\app\components\AnalyticsChart.tsx`)
+- If there are inline styles, update them to match the new color palette.
+
+## Verification Plan
+
+### Manual Verification
+- Start the frontend server (`npm run dev`).
+- Navigate through Dashboard, Timeline, Analytics, and Auth pages.
+- Verify that every page shares the cohesive, minimalist Claude theme.
+- Confirm that session cards and interactive elements still function but look vastly more premium.
