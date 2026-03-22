@@ -47,7 +47,7 @@ export default function AnalyticsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const { ok, data } = await apiGetJson("/api/v1/plans");
+      const { ok, data } = await apiGetJson("/api/v1/plans/");
       if (!ok) {
         setError(data.message || "Failed to fetch plans");
         return;
