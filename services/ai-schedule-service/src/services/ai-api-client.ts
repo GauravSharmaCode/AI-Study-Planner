@@ -29,7 +29,7 @@ const RETRY_CONFIG = {
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   operation: string,
-  logger: unknown,
+  logger: any,
   retries = RETRY_CONFIG.maxRetries
 ): Promise<T> {
   let lastError: Error | undefined;
@@ -110,7 +110,7 @@ export class AIAPIClient {
 
     this.breaker = new CircuitBreaker(this.executeAIRequest.bind(this), breakerOptions);
 
-    this.breaker.fallback((params: unknown, err: unknown) => {
+    this.breaker.fallback((params: any, err: any) => {
        // Check if we are calling estimateTopics
        if (params && params.type === 'estimateTopics') {
            return this.deterministicFallback(params.subjects);
@@ -128,7 +128,7 @@ export class AIAPIClient {
    * Internal method to execute AI request with retry.
    * Used by CircuitBreaker.
    */
-  private async executeAIRequest(params: unknown): Promise<unknown> {
+  private async executeAIRequest(params: any): Promise<unknown> {
     const start = Date.now();
     try {
       const result = await retryWithBackoff(

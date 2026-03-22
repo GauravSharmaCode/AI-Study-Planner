@@ -8,7 +8,7 @@ const logger = createLogger("database");
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const queryLogger = () => {
-  return async (params: unknown, next: (params: unknown) => Promise<unknown>) => {
+  return async (params: any, next: (params: any) => Promise<unknown>) => {
     const before = Date.now();
     const result = await next(params);
     const after = Date.now();
@@ -57,7 +57,7 @@ const prisma = new PrismaClient({
 
 // Event listeners for Prisma logs
 if (process.env.NODE_ENV !== "test") {
-  prisma.$on("error", (e: unknown) => {
+  prisma.$on("error", (e: any) => {
     logger.error("Database error", {
       target: e.target,
       message: e.message,
@@ -65,7 +65,7 @@ if (process.env.NODE_ENV !== "test") {
     });
   });
 
-  prisma.$on("warn", (e: unknown) => {
+  prisma.$on("warn", (e: any) => {
     logger.warn("Database warning", {
       target: e.target,
       message: e.message,

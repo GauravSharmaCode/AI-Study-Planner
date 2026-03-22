@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-import { logger } from './utils/logger';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('healthcheck');
 
 /**
  * Health Check Script for AI Schedule Service

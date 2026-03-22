@@ -66,7 +66,7 @@ export class ServiceClient {
       };
 
     } catch (error: unknown) {
-      const err = error as unknown;
+      const err = error as any;
       logger.error('Service request failed', {
         service: this.serviceName,
         endpoint,
@@ -158,7 +158,7 @@ export const userService = {
     });
 
     if (response.success && response.data) {
-      return { valid: true, userId: response.data.userId };
+      return { valid: true, userId: (response.data as any).userId };
     }
 
     return { valid: false };
