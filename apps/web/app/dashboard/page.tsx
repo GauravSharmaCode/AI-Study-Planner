@@ -15,7 +15,7 @@ interface Session {
   endTime: string;
   plannedMinutes: number;
   isRevision: boolean;
-  status: "PENDING" | "COMPLETED" | "PARTIAL" | "SKIPPED";
+  status: "pending" | "completed" | "partial" | "skipped";
   completedMinutes?: number;
   remarks?: string;
 }
@@ -95,7 +95,7 @@ export default function DashboardPage() {
       }
       const { ok } = await apiPatchJson(`/api/v1/sessions/${sessionId}/status`, body);
       if (ok) {
-        if (status === "PARTIAL" || status === "SKIPPED") {
+        if (status === "partial" || status === "skipped") {
           triggerReschedulePoll();
         } else {
           await fetchPlan();
@@ -109,7 +109,7 @@ export default function DashboardPage() {
   };
 
   const todaySessions = getTodaySessions();
-  const completedCount = todaySessions.filter((s) => s.status === "COMPLETED").length;
+  const completedCount = todaySessions.filter((s) => s.status === "completed").length;
 
   if (loading && !plan) {
     return (
@@ -183,9 +183,9 @@ export default function DashboardPage() {
             <SessionCard
               key={session.id}
               session={session}
-              onComplete={(id) => handleStatusUpdate(id, "COMPLETED")}
-              onPartial={(id, mins) => handleStatusUpdate(id, "PARTIAL", mins)}
-              onSkip={(id) => handleStatusUpdate(id, "SKIPPED")}
+              onComplete={(id) => handleStatusUpdate(id, "completed")}
+              onPartial={(id, mins) => handleStatusUpdate(id, "partial", mins)}
+              onSkip={(id) => handleStatusUpdate(id, "skipped")}
               loading={updatingSession === session.id || isRescheduling}
             />
           ))

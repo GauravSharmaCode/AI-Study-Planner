@@ -9,6 +9,8 @@ export default function WizardStep2() {
   const router = useRouter();
   const [step1, setStep1] = useState<Step1Data | null>(null);
   const [rawSubjects, setRawSubjects] = useState("");
+  const [availableHoursPerDay, setAvailableHoursPerDay] = useState(4);
+  const [preferredStartTime, setPreferredStartTime] = useState("08:00");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +36,10 @@ export default function WizardStep2() {
 
     const payload = {
       subjects,
-      availableHoursPerDay: 4,
+      availableHoursPerDay: Number(availableHoursPerDay),
       targetCompletionDate: step1.targetDate,
       examName: step1.examName,
-      preferredStartTime: "08:00",
+      preferredStartTime,
     };
 
     try {
@@ -65,7 +67,7 @@ export default function WizardStep2() {
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>What subjects or areas are you covering?</p>
         </div>
 
-        <div style={{ marginBottom: "32px" }}>
+        <div style={{ marginBottom: "24px" }}>
           <label className="claude-label">List Subjects</label>
           <textarea
             className="claude-input"
@@ -76,6 +78,33 @@ export default function WizardStep2() {
             required
           />
           <p style={{ marginTop: "8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>Separate subjects with commas. Our AI will break these down into study units.</p>
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <label className="claude-label">Available Study Hours per Day</label>
+          <input
+            type="number"
+            className="claude-input"
+            min={0.5}
+            max={12}
+            step={0.5}
+            value={availableHoursPerDay}
+            onChange={(e: any) => setAvailableHoursPerDay(e.target.value)}
+            required
+          />
+          <p style={{ marginTop: "8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>How many hours can you dedicate to studying each day?</p>
+        </div>
+
+        <div style={{ marginBottom: "32px" }}>
+          <label className="claude-label">Preferred Start Time</label>
+          <input
+            type="time"
+            className="claude-input"
+            value={preferredStartTime}
+            onChange={(e: any) => setPreferredStartTime(e.target.value)}
+            required
+          />
+          <p style={{ marginTop: "8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>When do you usually start studying? (e.g. 08:00)</p>
         </div>
 
         {error && (

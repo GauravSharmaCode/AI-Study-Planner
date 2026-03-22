@@ -11,7 +11,7 @@ interface Session {
   endTime: string;
   plannedMinutes: number;
   isRevision: boolean;
-  status: "PENDING" | "COMPLETED" | "PARTIAL" | "SKIPPED";
+  status: "pending" | "completed" | "partial" | "skipped";
   completedMinutes?: number;
   remarks?: string;
 }
@@ -45,11 +45,11 @@ export default function SessionCard({
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case "COMPLETED":
+      case "completed":
         return { backgroundColor: "rgba(34, 197, 94, 0.1)", color: "var(--status-success)" };
-      case "PARTIAL":
+      case "partial":
         return { backgroundColor: "rgba(245, 158, 11, 0.1)", color: "var(--status-warning)" };
-      case "SKIPPED":
+      case "skipped":
         return { backgroundColor: "rgba(239, 68, 68, 0.1)", color: "var(--status-error)" };
       default:
         return { backgroundColor: "var(--bg-primary)", color: "var(--text-secondary)" };
@@ -63,8 +63,8 @@ export default function SessionCard({
       className="claude-card"
       style={{
         marginBottom: "12px",
-        opacity: session.status === "SKIPPED" ? 0.6 : 1,
-        borderLeft: session.status === "COMPLETED" ? "4px solid var(--status-success)" : "1px solid var(--border-subtle)",
+        opacity: session.status === "skipped" ? 0.6 : 1,
+        borderLeft: session.status === "completed" ? "4px solid var(--status-success)" : "1px solid var(--border-subtle)",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
@@ -108,7 +108,7 @@ export default function SessionCard({
         </span>
       </div>
 
-      {session.status === "PENDING" && (
+      {session.status === "pending" && (
         <div style={{ marginTop: "1.5rem", display: "flex", gap: "10px" }}>
           <button
             className="claude-button"
@@ -164,7 +164,7 @@ export default function SessionCard({
         </div>
       )}
 
-      {session.status === "PARTIAL" && session.completedMinutes && (
+      {session.status === "partial" && session.completedMinutes && (
         <div style={{ marginTop: "12px", fontSize: "0.875rem", color: "var(--status-warning)", fontWeight: 500 }}>
           ✓ Completed {session.completedMinutes} minutes
         </div>
