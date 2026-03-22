@@ -56,7 +56,9 @@ export class StudyPlanService {
 
   constructor() {
     this.prisma = prisma;
-    this.aiClient = new AIAPIClient(process.env.GOOGLE_GENAI_API_KEY || '');
+    const ollamaApiKey = process.env.OLLAMA_API_KEY || '';
+    const ollamaModel = process.env.OLLAMA_MODEL;
+    this.aiClient = new AIAPIClient(ollamaApiKey, ollamaModel);
   }
 
   // ─── CREATE PLAN ────────────────────────────────────────────────

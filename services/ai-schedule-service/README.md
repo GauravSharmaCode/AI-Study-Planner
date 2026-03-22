@@ -2,11 +2,11 @@
 
 ## Overview
 
-The AI Schedule Service is a microservice that generates intelligent study schedules using Google's Gemini AI. It creates personalized daily schedules, study sessions, and learning targets based on user study plans and preferences.
+The AI Schedule Service is a microservice that generates intelligent study schedules using Ollama Cloud AI with open-source models (Llama 3.1, Mistral, Mixtral, etc.). It creates personalized daily schedules, study sessions, and learning targets based on user study plans and preferences.
 
 ## Features
 
-- **AI-Powered Schedule Generation**: Uses Google Gemini AI to create intelligent study schedules (deterministic + heuristic).
+- **AI-Powered Schedule Generation**: Uses Ollama Cloud AI to create intelligent study schedules (deterministic + heuristic).
 - **Personalized Content**: Generates topics, sessions, and targets based on study plans.
 - **Adaptive Rescheduling**: Automatically redistributes workload when sessions are skipped.
 - **Progress Tracking**: Monitors study progress and adapts recommendations.
@@ -17,7 +17,7 @@ The AI Schedule Service is a microservice that generates intelligent study sched
 
 - **Runtime**: Node.js with TypeScript
 - **Database**: PostgreSQL with Prisma ORM
-- **AI Integration**: Google Gemini AI (`@google/genai`)
+- **AI Integration**: Ollama Cloud API (`ollama` npm package)
 - **Queue**: BullMQ with Redis (for async rescheduling)
 - **Logging**: Winston with structured logging
 - **Testing**: Jest with Supertest
@@ -30,7 +30,8 @@ ai-schedule-service/
 ├── src/
 │   ├── services/
 │   │   ├── schedulingEngine.ts     # Core deterministic engine
-│   │   └── ai-api-client.ts        # AI API client (Google Gemini)
+│   │   ├── studyPlanService.ts     # Business logic for plans
+│   │   └── ai-api-client.ts        # AI API client (Ollama Cloud)
 │   ├── controllers/
 │   │   └── studyPlanController.ts  # Request handlers
 │   ├── routes/
@@ -64,7 +65,7 @@ ai-schedule-service/
 - Node.js 20+
 - PostgreSQL database
 - Redis (for BullMQ)
-- Google Gemini AI API key
+- Ollama Cloud API key (get from https://ollama.com)
 - Docker (for containerized deployment)
 
 ## Environment Variables
@@ -75,8 +76,10 @@ Create a `.env` file in the service root:
 # Database
 DATABASE_URL="postgresql://username:password@localhost:5432/ai_schedule_db"
 
-# Google Gemini AI
-GOOGLE_GENAI_API_KEY="your_gemini_api_key_here"
+# Ollama Cloud AI
+# Get your API key from https://ollama.com
+OLLAMA_API_KEY="your_ollama_api_key_here"
+OLLAMA_MODEL="llama3.1:8b-cloud"  # Optional: override default model
 
 # Service Configuration
 PORT=3002
@@ -88,6 +91,15 @@ USER_SERVICE_URL="http://localhost:3001"
 # Logging
 LOG_LEVEL=info
 ```
+
+### Supported Ollama Cloud Models
+
+| Model | Size | Use Case |
+|-------|------|----------|
+| `llama3.1:8b-cloud` | 8B | Fast, cost-effective (recommended) |
+| `llama3.1:70b-cloud` | 70B | Higher quality reasoning |
+| `mixtral:8x7b-cloud` | 47B | Balanced performance |
+| `mistral:7b-cloud` | 7B | Lightweight tasks |
 
 ## Installation
 
@@ -268,9 +280,9 @@ Structured logging with Winston:
 
 ```typescript
 // Log levels: error, warn, info, debug
-logger.info('Schedule generated', { 
-  scheduleId: schedule.id, 
-  userId: studyPlan.userId 
+logger.info('Schedule generated', {
+  scheduleId: schedule.id,
+  userId: studyPlan.userId
 });
 ```
 
@@ -278,3 +290,29 @@ Logs are written to:
 - `logs/combined.log` - All logs
 - `logs/error.log` - Error logs only
 - Console output (development)
+
+## AI Integration Details
+
+The service uses Ollama Cloud API for AI-powered topic estimation:
+
+1. **Topic Estimation**: AI breaks down subjects into specific, study-able topics
+2. **Effort Estimation**: AI estimates hours needed per topic (0.5-8 hours)
+3. **Difficulty Tagging**: AI tags topics as easy/medium/hard
+
+### Circuit Breaker Pattern
+
+The AI client implements the circuit breaker pattern for resilience:
+
+- **Timeout**: 8 seconds per request
+- **Error Threshold**: 50% failure rate triggers open state
+- **Reset Timeout**: 10 seconds before retry
+- **Fallback**: Deterministic topic estimation when circuit is open
+
+### Retry Logic
+
+Exponential backoff with configurable parameters:
+
+- **Max Retries**: 2
+- **Initial Delay**: 500ms
+- **Max Delay**: 2000ms
+- **Backoff Multiplier**: 2x

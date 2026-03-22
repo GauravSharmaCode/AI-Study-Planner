@@ -104,10 +104,11 @@ services:
       PORT: 3002
       DATABASE_URL: postgresql://postgres:postgres123@schedule-db:5432/ai_schedule_db?schema=public
       USER_SERVICE_URL: http://user-service:3001
-      GOOGLE_GENAI_API_KEY: ${GOOGLE_GENAI_API_KEY}
-      AI_MODEL: gemini-1.5-pro
-      AI_TEMPERATURE: 0.7
-      AI_MAX_TOKENS: 2048
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:120b}
+      AI_RETRY_MAX_ATTEMPTS: 3
+      AI_RETRY_INITIAL_DELAY_MS: 1000
+      AI_RETRY_MAX_DELAY_MS: 10000
       JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-key}
       REDIS_URL: redis://redis:6379
       CORS_ORIGIN: http://localhost:3000

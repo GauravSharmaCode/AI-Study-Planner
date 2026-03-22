@@ -7,7 +7,7 @@ This document is for agentic coding agents operating in this monorepo. It captur
 - Root package manages workspaces under `services/*` and `apps/*` (package.json: `workspaces`).
 - Primary services:
   - `services/user-service`: User management/auth; TypeScript, Express, Prisma.
-  - `services/ai-schedule-service`: AI study plan; TypeScript, Express, Prisma, Google Gemini.
+  - `services/ai-schedule-service`: AI study plan; TypeScript, Express, Prisma, Ollama Cloud AI.
 - Common TypeScript config at service level; build outputs go to `dist/`.
 - NGINX gateway under `apps/nginx-gateway` (Dockerized; build via docker-compose).
 
@@ -206,7 +206,7 @@ This document is for agentic coding agents operating in this monorepo. It captur
 ## Environment Variables
 
 - Required examples (see README.md):
-  - `GOOGLE_GENAI_API_KEY`, `JWT_SECRET`, and DB URLs via `DATABASE_URL` in docker-compose.
+  - `OLLAMA_API_KEY`, `JWT_SECRET`, and DB URLs via `DATABASE_URL` in docker-compose.
 - In local dev, prefer `.env` loaded via `dotenv`. Do not commit secrets.
 - Validate env at startup (Zod schema or similar) and fail fast when missing.
 
@@ -260,7 +260,7 @@ This document is for agentic coding agents operating in this monorepo. It captur
   - TS config: strict mode with many safety flags (`noImplicitAny`, `strictNullChecks`, etc.).
 
 - `services/ai-schedule-service`:
-  - Tools: Express, Prisma, Google GenAI, winston, zod.
+  - Tools: Express, Prisma, Ollama Cloud AI, winston, zod.
   - Scripts: `dev`, `build`, `start`, `test`, `test:watch`, `test:coverage`, `lint` (temporarily disabled), `lint:fix` (temporarily disabled).
   - TS config: strict mode; CommonJS; `esModuleInterop` enabled.
 

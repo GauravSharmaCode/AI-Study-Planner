@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { Ollama } from 'ollama';
 import CircuitBreaker from 'opossum';
 import { createLogger } from '../utils/logger';
 import { TopicEstimate } from './schedulingEngine';
@@ -6,7 +6,7 @@ import { aiApiLatencySeconds } from '../utils/metrics';
 
 /**
  * Retry configuration for AI API calls
- * Reduced for circuit breaker compatibility (8s hard timeout)
+ * Reduced for circuit breaker compatibility (60s hard timeout)
  */
 const RETRY_CONFIG = {
   maxRetries: 2,
@@ -75,32 +75,42 @@ async function retryWithBackoff<T>(
  */
 export class AIAPIClient {
   private readonly logger = createLogger('ai-client');
-  private readonly ai: GoogleGenAI;
-  private readonly modelName: string = 'gemini-2.0-flash';
+  private readonly ollama: Ollama;
+  private readonly modelName: string;
   private readonly breaker: CircuitBreaker;
 
   /**
    * Creates an instance of AIAPIClient.
    *
-   * @param {string} apiKey - The Google GenAI API key.
+   * @param {string} apiKey - The Ollama API key.
+   * @param {string} [model] - Optional model name override.
    * @throws {Error} If apiKey is missing.
    */
-  constructor(apiKey: string) {
+  constructor(apiKey: string, model?: string) {
     if (!apiKey) {
       throw new Error('AIAPIClient requires a valid API key.');
     }
-    this.ai = new GoogleGenAI({ apiKey });
+
+    this.modelName = model || 'llama3.1:8b-cloud';
+
+    // Initialize Ollama client with cloud configuration
+    this.ollama = new Ollama({
+      host: 'https://ollama.com',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
 
     // Initialize Circuit Breaker
     const breakerOptions = {
-      timeout: 8000, // 8s hard cap
+      timeout: 60000, // 60s cap for cloud LLMs
       errorThresholdPercentage: 50,
       resetTimeout: 10000, // 10s
     };
 
     this.breaker = new CircuitBreaker(this.executeAIRequest.bind(this), breakerOptions);
 
-    this.breaker.fallback((err: any, params: any) => {
+    this.breaker.fallback((params: any, err: any) => {
        // Check if we are calling estimateTopics
        if (params && params.type === 'estimateTopics') {
            return this.deterministicFallback(params.subjects);
@@ -201,45 +211,38 @@ For each topic, provide:
 - estimatedHours: Realistic hours needed to learn/review this topic (0.5 to 8 hours)
 - difficulty: One of "easy", "medium", or "hard"
 
-Be thorough but practical. Each topic should represent a single focused study session or a small number of sessions. Aim for topics that take 1-4 hours each on average.`;
+Be thorough but practical. Each topic should represent a single focused study session or a small number of sessions. Aim for topics that take 1-4 hours each on average.
+
+Respond ONLY with a valid JSON array. Do not include any explanation or text outside the JSON array.`;
 
     const apiCallFn = async () => {
-        const result = await this.ai.models.generateContent({
-          model: this.modelName,
-          contents: [{ parts: [{ text: prompt }] }],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  subject: { type: Type.STRING },
-                  estimatedHours: { type: Type.NUMBER },
-                  difficulty: { type: Type.STRING },
-                },
-                required: ["name", "subject", "estimatedHours", "difficulty"],
-              },
-            },
+      const result = await this.ollama.chat({
+        model: this.modelName,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
           },
-        });
+        ],
+        format: 'json',
+        stream: false,
+      });
 
-        const text = result.text;
-        if (!text) {
-          throw new Error("AI returned empty response");
-        }
+      const text = result.message?.content;
+      if (!text) {
+        throw new Error('AI returned empty response');
+      }
 
-        const parsed = JSON.parse(text) as TopicEstimate[];
+      const parsed = JSON.parse(text) as TopicEstimate[];
 
-        // Validate and sanitize difficulty values
-        return parsed.map(topic => ({
-          ...topic,
-          difficulty: (['easy', 'medium', 'hard'].includes(topic.difficulty)
-            ? topic.difficulty
-            : 'medium') as 'easy' | 'medium' | 'hard',
-          estimatedHours: Math.max(0.5, Math.min(8, topic.estimatedHours)),
-        }));
+      // Validate and sanitize difficulty values
+      return parsed.map(topic => ({
+        ...topic,
+        difficulty: (['easy', 'medium', 'hard'].includes(topic.difficulty)
+          ? topic.difficulty
+          : 'medium') as 'easy' | 'medium' | 'hard',
+        estimatedHours: Math.max(0.5, Math.min(8, topic.estimatedHours)),
+      }));
     };
 
     // Execute via Circuit Breaker
@@ -261,12 +264,18 @@ Be thorough but practical. Each topic should represent a single focused study se
     this.logger.info('Requesting content from AI service...');
 
     const apiCallFn = async () => {
-        const result = await this.ai.models.generateContent({
-          model: this.modelName,
-          contents: prompt
-        });
+      const result = await this.ollama.chat({
+        model: this.modelName,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        stream: false,
+      });
 
-        return result.text || '';
+      return result.message?.content || '';
     };
 
     return this.breaker.fire({
