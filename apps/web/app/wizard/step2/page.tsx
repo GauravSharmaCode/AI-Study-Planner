@@ -47,7 +47,7 @@ export default function WizardStep2() {
       setError(null);
       const { ok, data } = await apiPostJson("/api/v1/plans/generate", payload);
       if (ok && (data as any)?.data?.planId) {
-        router.push(`/wizard/step3?planId=${(data as any).data.planId}`);
+        router.push(`/wizard/done`);
       } else {
         setError((data as any)?.message ?? "Generation failed. Our AI might be busy, please try again.");
       }
@@ -62,7 +62,7 @@ export default function WizardStep2() {
     <div className="claude-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
       <div className="claude-card" style={{ width: "100%", maxWidth: "520px", padding: "40px" }}>
         <div style={{ marginBottom: "32px" }}>
-          <div className="claude-badge" style={{ backgroundColor: "var(--accent-muted)", color: "var(--accent-color)", marginBottom: "16px" }}>Step 2 of 5</div>
+          <div className="claude-badge" style={{ backgroundColor: "var(--accent-muted)", color: "var(--accent-color)", marginBottom: "16px" }}>Step 2 of 2</div>
           <h1 style={{ fontSize: "2rem", marginBottom: "8px" }}>Subjects</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>What subjects or areas are you covering?</p>
         </div>
@@ -128,7 +128,7 @@ export default function WizardStep2() {
                  <div className="animate-spin" style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%" }}></div>
                  AI Generating...
                </div>
-            ) : "Generate Plan"}
+            ) : "Generate and Launch Plan"}
           </button>
         </div>
       </div>
