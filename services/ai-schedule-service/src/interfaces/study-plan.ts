@@ -83,7 +83,7 @@ export interface ScheduleMetadata {
 
 export interface AIScheduleServiceRequest {
   action: 'CREATE_STUDY_PLAN' | 'GENERATE_SCHEDULE' | 'GET_SCHEDULES' | 'UPDATE_SCHEDULE' | 'DELETE_SCHEDULE';
-  payload: any;
+  payload: Record<string, unknown>;
   userId: string;
 }
 

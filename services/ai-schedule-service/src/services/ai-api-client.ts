@@ -21,7 +21,7 @@ const RETRY_CONFIG = {
  * @template T
  * @param {() => Promise<T>} fn - The async function to retry
  * @param {string} operation - Name of the operation for logging
- * @param {any} logger - Logger instance
+ * @param {unknown} logger - Logger instance
  * @param {number} [retries=RETRY_CONFIG.maxRetries] - Maximum number of retries
  * @returns {Promise<T>} The result of the function call
  * @throws {Error} If all retries fail
@@ -128,7 +128,7 @@ export class AIAPIClient {
    * Internal method to execute AI request with retry.
    * Used by CircuitBreaker.
    */
-  private async executeAIRequest(params: any): Promise<any> {
+  private async executeAIRequest(params: any): Promise<unknown> {
     const start = Date.now();
     try {
       const result = await retryWithBackoff(
@@ -213,7 +213,7 @@ For each topic, provide:
 
 Be thorough but practical. Each topic should represent a single focused study session or a small number of sessions. Aim for topics that take 1-4 hours each on average.
 
-Respond ONLY with a valid JSON array. Do not include any explanation or text outside the JSON array.`;
+Respond ONLY with a valid JSON array. Do not include unknown explanation or text outside the JSON array.`;
 
     const apiCallFn = async () => {
       const result = await this.ollama.chat({

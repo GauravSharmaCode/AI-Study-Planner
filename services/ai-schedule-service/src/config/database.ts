@@ -8,7 +8,7 @@ const logger = createLogger("database");
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const queryLogger = () => {
-  return async (params: any, next: (params: any) => Promise<any>) => {
+  return async (params: any, next: (params: any) => Promise<unknown>) => {
     const before = Date.now();
     const result = await next(params);
     const after = Date.now();

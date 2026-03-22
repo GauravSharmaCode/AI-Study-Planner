@@ -1,4 +1,4 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -13,7 +13,7 @@ export interface PaginationMeta {
   totalPages: number;
 }
 
-export interface PaginatedResponse<T = any> extends ApiResponse<T> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T> {
   meta: PaginationMeta;
 }
 
@@ -24,7 +24,7 @@ export interface LogEntry {
   serviceId: string;
   userId?: string;
   requestId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MetricData {

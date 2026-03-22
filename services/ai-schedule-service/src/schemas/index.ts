@@ -105,29 +105,29 @@ export const GetAnalyticsSchema = z.object({
 export const ServiceRequestSchema = z.object({
   serviceId: z.string(),
   action: z.string(),
-  payload: z.any(),
+  payload: z.unknown(),
   userId: z.string().optional(),
   requestId: z.string(),
   timestamp: z.string()
 });
 
-export type ServiceRequest<T = any> = z.infer<typeof ServiceRequestSchema> & { payload: T };
+export type ServiceRequest<T = unknown> = z.infer<typeof ServiceRequestSchema> & { payload: T };
 
 export const ServiceResponseSchema = z.object({
   success: z.boolean(),
-  data: z.any().optional(),
+  data: z.unknown().optional(),
   error: z.string().optional(),
   requestId: z.string(),
   timestamp: z.string(),
   serviceId: z.string()
 });
 
-export type ServiceResponse<T = any> = z.infer<typeof ServiceResponseSchema> & { data?: T };
+export type ServiceResponse<T = unknown> = z.infer<typeof ServiceResponseSchema> & { data?: T };
 
 export const ServiceEventSchema = z.object({
   eventType: z.string(),
   serviceId: z.string(),
-  payload: z.any(),
+  payload: z.unknown(),
   timestamp: z.string(),
   userId: z.string().optional()
 });
