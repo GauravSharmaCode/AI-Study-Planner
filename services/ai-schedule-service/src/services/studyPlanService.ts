@@ -26,7 +26,7 @@ export interface CreatePlanRequest {
 }
 
 export interface UpdateSessionStatusRequest {
-  status: 'PENDING' | 'COMPLETED' | 'SKIPPED' | 'PARTIAL';
+  status: string;
   completedMinutes?: number;
   remarks?: string;
 }
@@ -326,7 +326,8 @@ export class StudyPlanService {
     update: UpdateSessionStatusRequest
   ): Promise<void> {
     const func = "updateSessionStatus";
-    const { status, completedMinutes, remarks } = update;
+    const { completedMinutes, remarks } = update;
+    const status = update.status.toUpperCase() as 'PENDING' | 'COMPLETED' | 'SKIPPED' | 'PARTIAL';
 
     logger.entry(func, { sessionId, status });
 

@@ -56,7 +56,8 @@ export default function SessionCard({
     }
   };
 
-  const statusStyle = getStatusStyle(session.status);
+  const normalizedStatus = session.status.toLowerCase() as Session["status"];
+  const statusStyle = getStatusStyle(normalizedStatus);
 
   return (
     <div
@@ -104,11 +105,11 @@ export default function SessionCard({
             fontWeight: 600,
           }}
         >
-          {session.status.toLowerCase()}
+          {normalizedStatus}
         </span>
       </div>
 
-      {session.status === "pending" && (
+      {normalizedStatus === "pending" && (
         <div style={{ marginTop: "1.5rem", display: "flex", gap: "10px" }}>
           <button
             className="claude-button"
@@ -164,7 +165,7 @@ export default function SessionCard({
         </div>
       )}
 
-      {session.status === "partial" && session.completedMinutes && (
+      {normalizedStatus === "partial" && session.completedMinutes && (
         <div style={{ marginTop: "12px", fontSize: "0.875rem", color: "var(--status-warning)", fontWeight: 500 }}>
           ✓ Completed {session.completedMinutes} minutes
         </div>
