@@ -38,14 +38,15 @@ export default function TimelinePage() {
   const fetchPlan = async () => {
     try {
       setLoading(true);
-      const { ok, data } = await apiGetJson("/api/v1/plans/");
+      const { ok, data } = await apiGetJson("/api/v1/plans");
       if (!ok) {
         setError(data?.message || "Failed to fetch plans");
         return;
       }
       const activePlan = data.data?.find((p: any) => p.isActive);
       if (activePlan) {
-        const { ok: planOk, data: planData } = await apiGetJson(`/api/v1/plans/${activePlan.planId}`);
+        const planId = activePlan.planId ?? activePlan.id;
+        const { ok: planOk, data: planData } = await apiGetJson(`/api/v1/plans/${planId}`);
         if (planOk) {
           setPlan(planData.data);
         }
@@ -88,7 +89,7 @@ export default function TimelinePage() {
   const handleStatusUpdate = async (sessionId: string, status: string, completedMinutes?: number) => {
     try {
       setUpdatingSession(sessionId);
-      const body: any = { status };
+      const body: any = { status: status.toLowerCase() };
       if (completedMinutes !== undefined) {
         body.completedMinutes = completedMinutes;
       }
@@ -109,10 +110,6 @@ export default function TimelinePage() {
 
   const navigateDate = (days: number) => {
     setSelectedDate(addDays(selectedDate!, days));
-  };
-
-  const formatDateDisplay = (dateStr: string) => {
-    return formatDateDisplay(dateStr);
   };
 
   const sessions = getSessionsForDate(selectedDate);

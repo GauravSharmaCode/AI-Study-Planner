@@ -1,5 +1,17 @@
 // Lightweight frontend API client (no external deps) with token stored in localStorage
 
+/** Avoids throw when the gateway returns HTML, empty body, or plain text (misleading "Network error" in callers). */
+export async function parseResponseBody(res: Response): Promise<any> {
+  const text = await res.text();
+  const t = text.trim();
+  if (!t) return {};
+  try {
+    return JSON.parse(t);
+  } catch {
+    return { message: t.length > 240 ? `${t.slice(0, 240)}…` : t };
+  }
+}
+
 export async function apiFetch(input: any, init: any = {}) {
   const ls = (globalThis as any).localStorage;
   const token = ls ? ls.getItem("auth_token") : null;
@@ -7,7 +19,7 @@ export async function apiFetch(input: any, init: any = {}) {
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  const merged = { ...init, headers };
+  const merged = { ...init, headers, cache: init.cache ?? "no-store" };
   return fetch(input, merged);
 }
 
@@ -17,7 +29,7 @@ export async function apiPostJson(url: string, body: any): Promise<{ok: boolean;
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await parseResponseBody(res);
   return { ok: res.ok, data };
 }
 
@@ -27,7 +39,7 @@ export async function apiPutJson(url: string, body: any): Promise<{ok: boolean; 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await parseResponseBody(res);
   return { ok: res.ok, data };
 }
 
@@ -37,13 +49,15 @@ export async function apiPatchJson(url: string, body: any): Promise<{ok: boolean
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await parseResponseBody(res);
   return { ok: res.ok, data };
 }
 
 export async function apiGetJson(url: string): Promise<{ok: boolean; data: any}> {
-  const res = await apiFetch(url, { method: "GET" });
-  const data = await res.json();
+  const hasQuery = url.includes("?");
+  const requestUrl = `${url}${hasQuery ? "&" : "?"}_ts=${Date.now()}`;
+  const res = await apiFetch(requestUrl, { method: "GET" });
+  const data = await parseResponseBody(res);
   return { ok: res.ok, data };
 }
 

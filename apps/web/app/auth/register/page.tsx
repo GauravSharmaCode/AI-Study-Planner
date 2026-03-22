@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveToken } from "../../lib/api";
+import { parseResponseBody, saveToken } from "../../lib/api";
 
 export default function Register() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function Register() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-      const data: any = await res.json();
+      const data: any = await parseResponseBody(res);
       if (res.ok && data?.token) {
         saveToken(data.token);
         router.push("/wizard/step1");

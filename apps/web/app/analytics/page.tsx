@@ -47,7 +47,7 @@ export default function AnalyticsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const { ok, data } = await apiGetJson("/api/v1/plans/");
+      const { ok, data } = await apiGetJson("/api/v1/plans");
       if (!ok) {
         setError(data.message || "Failed to fetch plans");
         return;
@@ -55,7 +55,8 @@ export default function AnalyticsPage() {
       const activePlan = data.data?.find((p: any) => p.isActive);
       if (activePlan) {
         setPlan(activePlan);
-        const { ok: statOk, data: statData } = await apiGetJson(`/api/v1/plans/${activePlan.planId}/analytics`);
+        const planId = activePlan.planId ?? activePlan.id;
+        const { ok: statOk, data: statData } = await apiGetJson(`/api/v1/plans/${planId}/analytics`);
         if (statOk) {
           setAnalytics(statData.data);
         } else {
