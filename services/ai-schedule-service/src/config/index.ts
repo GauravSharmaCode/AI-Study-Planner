@@ -10,7 +10,8 @@ export interface AppConfig {
     port: number;
     nodeEnv: string;
     serviceName: string;
-    googleGenAiKey: string;
+    ollamaApiKey: string;
+    ollamaModel?: string;
     userServiceUrl: string;
     cors: {
         origin: string | string[];
@@ -28,9 +29,10 @@ const config: AppConfig = {
     port: parseInt(process.env.PORT || '3002'),
     nodeEnv: process.env.NODE_ENV || 'development',
     serviceName: 'ai-schedule-service',
-    googleGenAiKey: process.env.GOOGLE_GENAI_API_KEY || '',
+    ollamaApiKey: process.env.OLLAMA_API_KEY || '',
+    ollamaModel: process.env.OLLAMA_MODEL,
     userServiceUrl: process.env.USER_SERVICE_URL || 'http://localhost:3001',
-    
+
     cors: {
         origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Add more origins as needed
         credentials: true
@@ -46,8 +48,8 @@ const config: AppConfig = {
 } as AppConfig;
 
 // Validation
-if (!config.googleGenAiKey && config.nodeEnv !== 'test') {
-    console.warn('WARNING: GOOGLE_GENAI_API_KEY is missing. AI features will fail.');
+if (!config.ollamaApiKey && config.nodeEnv !== 'test') {
+    console.warn('WARNING: OLLAMA_API_KEY is missing. AI features will fail.');
 }
 
 export default config;

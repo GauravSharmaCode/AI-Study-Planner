@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Study Planner is a microservices architecture built with TypeScript, Express.js, Docker, PostgreSQL, and Redis. It generates AI-assisted study plans using Google Gemini and manages them through deterministic scheduling logic with adaptive rescheduling capabilities.
+AI Study Planner is a microservices architecture built with TypeScript, Express.js, Docker, PostgreSQL, and Redis. It generates AI-assisted study plans using Ollama Cloud AI (open-source models) and manages them through deterministic scheduling logic with adaptive rescheduling capabilities.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ AI Study Planner is a microservices architecture built with TypeScript, Express.
 ```
 
 - **User Service** (`services/user-service`): Authentication, JWT tokens, profile management. Uses `@gauravsharmacode/neat-logger`.
-- **AI Schedule Service** (`services/ai-schedule-service`): Study plan generation with deterministic `schedulingEngine.ts`, BullMQ background workers for rescheduling, Google Gemini integration. Uses `winston` for logging.
+- **AI Schedule Service** (`services/ai-schedule-service`): Study plan generation with deterministic `schedulingEngine.ts`, BullMQ background workers for rescheduling, Ollama Cloud AI integration. Uses `winston` for logging.
 - **NGINX Gateway** (`apps/nginx-gateway`): Reverse proxy, rate limiting, routes `/api/v1/*` to appropriate services.
 
 ### Service Communication
@@ -55,7 +55,7 @@ Services communicate via HTTP through the NGINX gateway (port 8080). The AI Sche
 
 - **Node.js**: 20+ (package.json requires `node >=20.0.0`)
 - **Docker** and **Docker Compose**
-- **Google Gemini AI API Key**
+- **Ollama Cloud API Key** (get from https://ollama.com)
 
 ### Installation & Development
 
@@ -225,7 +225,7 @@ npx prisma studio
 
 Required for local development (see `.env.example` files in each service):
 - `JWT_SECRET`: Shared across services for token validation
-- `GOOGLE_GENAI_API_KEY` / `GEMINI_API_KEY`: For AI scheduling
+- `OLLAMA_API_KEY`: For AI scheduling (get from https://ollama.com)
 - `DATABASE_URL`: Each service has its own PostgreSQL database
 - `REDIS_URL`: For BullMQ queues (AI Schedule Service)
 - `USER_SERVICE_URL`: AI Schedule Service uses this to validate users

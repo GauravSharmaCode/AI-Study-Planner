@@ -2,7 +2,7 @@
 
 A modern, scalable AI-powered study planner built with microservices architecture, TypeScript, Docker, and PostgreSQL.
 
-The application helps students prepare for high-stakes examinations by generating structured, balanced daily study plans using Google Gemini AI, and adapting them dynamically based on execution data.
+The application helps students prepare for high-stakes examinations by generating structured, balanced daily study plans using Ollama Cloud AI (open-source models), and adapting them dynamically based on execution data.
 
 ## 🏗️ Architecture Overview
 
@@ -65,7 +65,7 @@ The application follows a microservices architecture with clear domain separatio
 
 ### 3. AI Schedule Service (Port 3002)
 - **Purpose**: AI-powered study schedule generation and management
-- **Tech Stack**: Express.js, TypeScript, Prisma, PostgreSQL, Google Gemini AI, BullMQ, Redis
+- **Tech Stack**: Express.js, TypeScript, Prisma, PostgreSQL, Ollama Cloud AI, BullMQ, Redis
 - **Domain**: Study plans and schedules
 - **Features**:
   - **Deterministic Engine**: AI-assisted heuristic estimation with deterministic scheduling logic.
@@ -82,7 +82,7 @@ The application follows a microservices architecture with clear domain separatio
 - **Database**: PostgreSQL 16
 - **ORM**: Prisma
 - **Cache / Queue**: Redis
-- **AI**: Google Gemini API
+- **AI**: Ollama Cloud API (Llama 3.1, Mistral, Mixtral, etc.)
 - **Containerization**: Docker & Docker Compose
 - **Reverse Proxy**: NGINX
 - **Authentication**: JWT
@@ -111,8 +111,7 @@ The application follows a microservices architecture with clear domain separatio
 
    # Create root .env for Docker Compose
    echo "JWT_SECRET=your-super-secret-jwt-key-here" > .env
-   echo "GEMINI_API_KEY=your-gemini-api-key-here" >> .env
-   echo "GOOGLE_GENAI_API_KEY=your-gemini-api-key-here" >> .env
+   echo "OLLAMA_API_KEY=your-ollama-api-key-here" >> .env
    ```
 
 3. **Start the services**:
@@ -220,8 +219,8 @@ All endpoints are accessed through the NGINX Gateway at `http://localhost:8080`
 - `PORT` - Service port (default: 3002)
 - `DATABASE_URL` - PostgreSQL connection string
 - `USER_SERVICE_URL` - User service URL for validation
-- `GOOGLE_GENAI_API_KEY` - Google Gemini API key
-- `AI_MODEL` - AI model to use (default: gemini-1.5-flash)
+- `OLLAMA_API_KEY` - Ollama Cloud API key (get from https://ollama.com)
+- `OLLAMA_MODEL` - AI model to use (default: llama3.1:8b-cloud)
 
 ## 🧪 Testing
 
