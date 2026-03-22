@@ -10,7 +10,7 @@ import { Request, Response, NextFunction } from 'express';
  * function and catches any errors, passing them to the next middleware.
  */
 export const catchAsync = (
-    fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+    fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
 ) => {
     return (req: Request, res: Response, next: NextFunction) => {
         fn(req, res, next).catch(next);

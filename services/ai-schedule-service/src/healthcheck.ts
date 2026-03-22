@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { logger } from './utils/logger';
 
 /**
  * Health Check Script for AI Schedule Service
@@ -17,7 +18,7 @@ const options = {
 };
 
 const healthCheck = http.request(options, (res) => {
-  console.log(`Health check response: ${res.statusCode}`);
+  logger.info(`Health check response: ${res.statusCode}`);
   
   if (res.statusCode === 200) {
     process.exit(0); // Success
@@ -27,12 +28,12 @@ const healthCheck = http.request(options, (res) => {
 });
 
 healthCheck.on('error', (err) => {
-  console.error('Health check failed:', err.message);
+  logger.error('Health check failed:', err.message);
   process.exit(1); // Failure
 });
 
 healthCheck.on('timeout', () => {
-  console.error('Health check timed out');
+  logger.error('Health check timed out');
   healthCheck.destroy();
   process.exit(1); // Failure
 });

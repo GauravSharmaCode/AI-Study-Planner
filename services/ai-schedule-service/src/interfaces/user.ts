@@ -36,7 +36,7 @@ export interface AuthResponse {
 
 export interface UserServiceRequest {
   action: 'CREATE_USER' | 'GET_USER' | 'UPDATE_USER' | 'DELETE_USER' | 'VALIDATE_TOKEN';
-  payload: any;
+  payload: Record<string, unknown>;
   userId?: string;
 }
 

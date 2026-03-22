@@ -38,7 +38,7 @@ export interface RescheduleJobData {
 
 export const RESCHEDULE_QUEUE_NAME = "reschedule-plan";
 
-export const rescheduleQueue = new Queue<RescheduleJobData, any, string>(
+export const rescheduleQueue = new Queue<RescheduleJobData, unknown, string>(
   RESCHEDULE_QUEUE_NAME,
   {
     connection: getConnection() as any,

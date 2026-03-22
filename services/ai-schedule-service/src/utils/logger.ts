@@ -64,19 +64,19 @@ export const createLogger = (serviceName: string) => {
   });
 
   return {
-    info: (message: string, meta: any = {}) => winstonLogger.info(message, meta),
-    warn: (message: string, meta: any = {}) => winstonLogger.warn(message, meta),
-    error: (message: string, meta: any = {}) => winstonLogger.error(message, meta),
-    debug: (message: string, meta: any = {}) => winstonLogger.debug(message, meta),
+    info: (message: string, meta: unknown = {}) => winstonLogger.info(message, meta),
+    warn: (message: string, meta: unknown = {}) => winstonLogger.warn(message, meta),
+    error: (message: string, meta: unknown = {}) => winstonLogger.error(message, meta),
+    debug: (message: string, meta: unknown = {}) => winstonLogger.debug(message, meta),
 
     // Custom methods
-    entry: (func: string, args: any = {}) => {
+    entry: (func: string, args: unknown = {}) => {
       winstonLogger.info("Function Entry", { func, payload: sanitize(args) });
     },
-    exit: (func: string, result: any = {}) => {
+    exit: (func: string, result: unknown = {}) => {
       winstonLogger.info("Function Exit", { func, result: sanitize(result) });
     },
-    stateChange: (func: string, stateName: string, before: any, after: any) => {
+    stateChange: (func: string, stateName: string, before: unknown, after: unknown) => {
       winstonLogger.info(`State Change: ${stateName}`, {
         func,
         before: sanitize(before),

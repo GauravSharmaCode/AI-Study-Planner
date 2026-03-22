@@ -17,19 +17,19 @@ export class Logger {
     };
   }
 
-  static info(message: string, func: string = "unknown", meta: any = {}) {
+  static info(message: string, func: string = "any", meta: any = {}) {
     logWithMeta(message, this.getMeta("info", func, meta));
   }
 
-  static warn(message: string, func: string = "unknown", meta: any = {}) {
+  static warn(message: string, func: string = "any", meta: any = {}) {
     logWithMeta(message, this.getMeta("warn", func, meta));
   }
 
-  static error(message: string, func: string = "unknown", meta: any = {}) {
+  static error(message: string, func: string = "any", meta: any = {}) {
     logWithMeta(message, this.getMeta("error", func, meta));
   }
 
-  static debug(message: string, func: string = "unknown", meta: any = {}) {
+  static debug(message: string, func: string = "any", meta: any = {}) {
     if (process.env.LOG_LEVEL !== "debug") return;
     logWithMeta(`[DEBUG] ${message}`, this.getMeta("info", func, meta));
   }

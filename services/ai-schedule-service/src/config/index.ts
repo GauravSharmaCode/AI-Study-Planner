@@ -49,7 +49,7 @@ const config: AppConfig = {
 
 // Validation
 if (!config.ollamaApiKey && config.nodeEnv !== 'test') {
-    console.warn('WARNING: OLLAMA_API_KEY is missing. AI features will fail.');
+    // console.warn('WARNING: OLLAMA_API_KEY is missing. AI features will fail.');
 }
 
 export default config;

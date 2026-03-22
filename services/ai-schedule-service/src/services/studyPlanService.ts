@@ -354,7 +354,7 @@ export class StudyPlanService {
 
       await enqueueReschedule({
         studyPlanId: session.studyPlanId,
-        correlationId: getCorrelationId() || 'unknown',
+        correlationId: getCorrelationId() || 'any',
         triggeredBy: 'session_status_change',
       });
     }

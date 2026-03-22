@@ -16,9 +16,9 @@ export class ServiceClient {
     this.timeout = timeout;
   }
 
-  async request<T = any>(
+  async request<T = unknown>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     options: {
       method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
       headers?: Record<string, string>;
@@ -65,8 +65,8 @@ export class ServiceClient {
         serviceId: this.serviceName
       };
 
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      const err = error as any;
+    } catch (error: unknown) {
+      const err = error as unknown;
       logger.error('Service request failed', {
         service: this.serviceName,
         endpoint,
@@ -164,14 +164,14 @@ export const userService = {
     return { valid: false };
   },
 
-  async getUserById(userId: string, userServiceUrl: string): Promise<any> {
+  async getUserById(userId: string, userServiceUrl: string): Promise<unknown> {
     const client = createUserServiceClient(userServiceUrl);
     return client.request(`/users/${userId}`, null, { method: 'GET' });
   }
 };
 
 export const aiScheduleService = {
-  async createStudyPlan(studyPlanData: any, userId: string, serviceUrl: string): Promise<any> {
+  async createStudyPlan(studyPlanData: unknown, userId: string, serviceUrl: string): Promise<unknown> {
     const client = createAIScheduleServiceClient(serviceUrl);
     return client.request('/study-plans', studyPlanData, {
       method: 'POST',
@@ -179,7 +179,7 @@ export const aiScheduleService = {
     });
   },
 
-  async generateSchedule(scheduleData: any, userId: string, serviceUrl: string): Promise<any> {
+  async generateSchedule(scheduleData: unknown, userId: string, serviceUrl: string): Promise<unknown> {
     const client = createAIScheduleServiceClient(serviceUrl);
     return client.request('/schedules/generate', scheduleData, {
       method: 'POST',
